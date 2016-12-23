@@ -1,0 +1,99 @@
+# Cloudberry Language Specification
+
+## Entry point
+All programs start at the function with the signature `nummy cloudberry (nummy argc, lissy<strry> argv)
+
+## Types
+The following types are available:
+
+ - `nully`: nothing (e.g. no return value)
+ - `evvy`: base class for everything
+ - `charry`: 8 bit signed interger
+ - `nummy`: 64 bit signed integer
+ - `fuzzy`: 64 bit floating point
+ - `strry`: string
+ - `lissy<type>`: list (e.g. `lissy<charry>`)
+ - `diccy<type>`: dictionary (e.g. `diccy<charry, nummy>`)
+
+## Code Blocks
+Code blocks are partitioned using indentation (1 tab per level).
+
+## Brainfuck
+The following syntax allows inline brainfuck: `$function_name$return_type$input_type:...$BF_CODE$;`
+Using `,` the arguments can be read, in little endian and the order in which they appear in the arguments. The return value has to be given using `.` in little endian.
+
+## Variables
+Variable names have to be match the following regex: `[A-Za-z_][A-Za-z1-9_-]*`. A variable has to be declared before it can used using the following syntax: `type name`.
+
+## Functions
+Functions are defined using the following syntax:
+
+```
+return_type function_name (argument_type argument_name, ...):
+	CODE_BLOCK
+```
+	
+A function is called using `function_name(expression, ...)`
+
+## Control Structures
+The following control structures are allowed:
+
+```
+if (expression):
+	CODE_BLOCK
+```
+
+```
+if (expression):
+	CODE_BLOCK
+else:
+	CODE_BLOCK
+```
+
+```
+for (i in list):
+	CODE_BLOCK
+```
+
+```
+for (0 <= i < n):
+	CODE_BLOCK
+```
+
+```
+while (expression):
+	CODE_BLOCK
+```
+
+```
+dowhile (expression):
+	CODE_BLOCK
+```
+
+## Classes
+A class can be defined with the following syntax:
+
+```
+classy class_name -> base_class:
+	CODE_BLOCK
+```
+
+Inside a class both functions and variables can be defined. The class name has to follow the same naming conventions as a variable.
+
+All classes inherit from `evvy`. All types are classes themselves.
+
+To access a class member the syntax is `obj.class_member`.
+
+## Keywords
+The following words are keywords:
+
+ - All types
+ - `if`
+ - `for`
+ - `in`
+ - `while`
+ - `dowhile`
+ - `classy`
+
+## Comments
+Line comments start with `#` or `//`. Block comments are contained within `/*` and `*/`.
