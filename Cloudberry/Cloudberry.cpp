@@ -2,14 +2,17 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <cstring>
 
 #include "CBLexer.h"
+#include "CBParser.h"
 
 enum class errortype {
 	none,
 	lexer,
 	parser,
 	compiler,
+	interpreter,
 };
 
 errortype error = errortype::none;
@@ -30,11 +33,37 @@ std::vector<cb::Token> lexFile(std::string a_file) {
 	return lexer.getTokens();
 }
 
-int main(int argc, char* argv[]) {
+cb::AST parseTokens(std::vector<cb::Token> a_tokens) {
+	cb::Parser parser;
+	if (parser.parse(a_tokens)) {
+		std::cerr << "Parser error " << parser.errorpos << ": " << parser.errorstr << std::endl;
+	}
+	return parser.getRootAST();
+}
 
+void compileAST(cb::AST a_ast, std::string a_file) {
+}
+
+void runAST(cb::AST a_ast) {
+
+}
+
+int main(int argc, char* argv[]) {
 	std::string inputfile = "";
-	for (int i = 0; i < argc; i++) {
-		inputfile = std::string(argv[i]);
+	std::string outfile = "a.exe";
+	bool compileFile = true;
+	for (int i = 1; i < argc; i++) {
+		if (!strcmp("-o", argv[i])) {
+			if (i >= argc - 1) {
+				std::cerr << "missing argument after -o" << std::endl;
+				return -1;
+			}
+			outfile = std::string(argv[i+1]);
+		} else if (!strcmp("-r", argv[i])) {
+			compileFile = false;
+		} else {
+			inputfile = std::string(argv[i]);
+		}
 	}
 
 	if (inputfile == "") {
@@ -48,7 +77,35 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	std::cerr << "Done lexing file. Found " << tokens.size() << " tokens." << std::endl;
+	if (compileFile) {
+		std::cerr << "Done lexing file. Found " << tokens.size() << " tokens." << std::endl;
+	}
+
+	cb::AST ast = parseTokens(tokens);
+
+	if (error != errortype::none) {
+		return -1;
+	}
+
+	if (compileFile) {
+		std::cerr << "Done parsing file." << std::endl;
+	}
+
+	if (compileFile) {
+		compileAST(ast, outfile);
+
+		if (error != errortype::none) {
+			return -1;
+		}
+
+		std::cerr << "Done compiling file." << std::endl;
+	} else {
+		runAST(ast);
+
+		if (error != errortype::none) {
+			return -1;
+		}
+	}
 
 	return 0;
 }

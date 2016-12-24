@@ -1,4 +1,4 @@
-#! /bin/cbc
+#! /bin/cbc -r
 
 $bf_add$charry:charry:charry$,>,[-<+>]<.$
 

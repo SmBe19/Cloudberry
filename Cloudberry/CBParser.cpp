@@ -18,7 +18,7 @@ namespace cb {
 	}
 
 	int Parser::parse(std::vector<Token> a_tokens) {
-
+		return 0;
 	}
 
 }
