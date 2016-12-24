@@ -18,6 +18,7 @@ namespace cb {
 		identifierToToken["dowhile"] = Token::Type::kw_dowhile;
 		identifierToToken["classy"] = Token::Type::kw_classy;
 		identifierToToken["goto"] = Token::Type::kw_goto;
+		/*
 		identifierToToken["nully"] = Token::Type::type_nully;
 		identifierToToken["evvy"] = Token::Type::type_evvy;
 		identifierToToken["charry"] = Token::Type::type_charry;
@@ -26,6 +27,7 @@ namespace cb {
 		identifierToToken["strry"] = Token::Type::type_strry;
 		identifierToToken["lissy"] = Token::Type::type_lissy;
 		identifierToToken["diccy"] = Token::Type::type_diccy;
+		*/
 
 		operatorToToken["+"] = Token::Type::op_plus;
 		operatorToToken["-"] = Token::Type::op_minus;
@@ -64,7 +66,7 @@ namespace cb {
 
 	Lexer::~Lexer() {}
 
-	std::vector<Token> Lexer::getTokens() {
+	std::vector<Token> &Lexer::getTokens() {
 		return tokens;
 	}
 
@@ -87,12 +89,13 @@ namespace cb {
 	};
 
 	int Lexer::lex(std::string a_code) {
+		// add buffer at end
 		a_code += "\n";
-		size_t pos = 0, codesize = a_code.size();
+		size_t codesize = a_code.size();
 		LexerState state = LexerState::init;
 		std::vector<Token> newTokens;
 		std::string value, tmp_value;
-		for (; pos < codesize; pos++) {
+		for (size_t pos = 0; pos < codesize; pos++) {
 			char c = a_code[pos];
 			if (c == '\r') {
 				continue;
@@ -244,7 +247,7 @@ namespace cb {
 				}
 				if (tmp_value.size() == 2) {
 					int cval = 0;
-					for (int i = 0; i < tmp_value.size(); i++) {
+					for (size_t i = 0; i < tmp_value.size(); i++) {
 						cval <<= 4;
 						char atmp = tmp_value[i];
 						if ('0' <= atmp && atmp <= '9') {
@@ -319,7 +322,7 @@ namespace cb {
 				break;
 			case LexerState::bf_code:
 				if (c == '$') {
-					newTokens.push_back(Token(Token::Type::bf_funcname, value));
+					newTokens.push_back(Token(Token::Type::bf_code, value));
 					value = "";
 					newTokens.push_back(Token(Token::Type::bf_delimiter, "$"));
 					state = LexerState::init;
@@ -345,6 +348,7 @@ namespace cb {
 						break;
 					}
 				}
+				newTokens.push_back(Token(Token::Type::newline, "\\n"));
 				if (anythingelse) {
 					tokens.insert(tokens.end(), newTokens.begin(), newTokens.end());
 					newTokens.clear();

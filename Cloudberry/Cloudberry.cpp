@@ -16,9 +16,10 @@ enum class errortype {
 };
 
 errortype error = errortype::none;
+cb::Lexer lexer;
+cb::Parser parser;
 
-std::vector<cb::Token> lexFile(std::string a_file) {
-	cb::Lexer lexer;
+std::vector<cb::Token> &lexFile(std::string a_file) {
 	std::ifstream fs(a_file);
 	std::string line;
 	int linenum = 1;
@@ -33,18 +34,18 @@ std::vector<cb::Token> lexFile(std::string a_file) {
 	return lexer.getTokens();
 }
 
-cb::AST parseTokens(std::vector<cb::Token> a_tokens) {
-	cb::Parser parser;
+cb::AST &parseTokens(std::vector<cb::Token> &a_tokens) {
 	if (parser.parse(a_tokens)) {
 		std::cerr << "Parser error " << parser.errorpos << ": " << parser.errorstr << std::endl;
+		error = errortype::parser;
 	}
 	return parser.getRootAST();
 }
 
-void compileAST(cb::AST a_ast, std::string a_file) {
+void compileAST(cb::AST a_ast, std::string &a_file) {
 }
 
-void runAST(cb::AST a_ast) {
+void runAST(cb::AST &a_ast) {
 
 }
 
@@ -71,7 +72,7 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	std::vector<cb::Token> tokens = lexFile(inputfile);
+	std::vector<cb::Token> &tokens = lexFile(inputfile);
 
 	if (error != errortype::none) {
 		return -1;
@@ -81,7 +82,7 @@ int main(int argc, char* argv[]) {
 		std::cerr << "Done lexing file. Found " << tokens.size() << " tokens." << std::endl;
 	}
 
-	cb::AST ast = parseTokens(tokens);
+	cb::AST &ast = parseTokens(tokens);
 
 	if (error != errortype::none) {
 		return -1;

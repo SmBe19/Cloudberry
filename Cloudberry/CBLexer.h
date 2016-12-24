@@ -14,6 +14,7 @@ namespace cb {
 			identifier,
 			colon,
 			comma,
+			newline,
 			bf_delimiter,
 			bf_funcname,
 			bf_type,
@@ -87,7 +88,7 @@ namespace cb {
 		Lexer();
 		~Lexer();
 		int lex(std::string);
-		std::vector<Token> getTokens();
+		std::vector<Token> &getTokens();
 		std::string errorstr;
 		int errorpos;
 	protected:
