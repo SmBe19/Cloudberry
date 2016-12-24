@@ -1,7 +1,7 @@
 # Cloudberry Language Specification
 
 ## Entry point
-All programs start at the function with the signature `nummy cloudberry (nummy argc, lissy<strry> argv)
+All programs start at the function with the signature `nummy cloudberry (nummy argc, lissy[strry] argv)
 
 ## Types
 The following types are available:
@@ -12,18 +12,21 @@ The following types are available:
  - `nummy`: 64 bit signed integer
  - `fuzzy`: 64 bit floating point
  - `strry`: string
- - `lissy<type>`: list (e.g. `lissy<charry>`)
- - `diccy<type>`: dictionary (e.g. `diccy<charry, nummy>`)
+ - `lissy[type]`: list (e.g. `lissy[charry]`)
+ - `diccy[type, type]`: dictionary (e.g. `diccy[charry, nummy]`)
 
 ## Code Blocks
 Code blocks are partitioned using indentation (1 tab per level).
 
 ## Brainfuck
-The following syntax allows inline brainfuck: `$function_name$return_type$input_type:...$BF_CODE$;`
+The following syntax allows inline brainfuck: `$function_name$return_type:input_type:...$BF_CODE$;`
 Using `,` the arguments can be read, in little endian and the order in which they appear in the arguments. The return value has to be given using `.` in little endian.
 
+## Identifiers
+Identifier names (variables, functions, classes) have to be match the following regex: `[A-Za-z_][A-Za-z1-9_]*`.
+
 ## Variables
-Variable names have to be match the following regex: `[A-Za-z_][A-Za-z1-9_-]*`. A variable has to be declared before it can used using the following syntax: `type name`.
+A variable has to be declared before it can used using the following syntax: `type name`.
 
 ## Functions
 Functions are defined using the following syntax:
@@ -78,11 +81,26 @@ classy class_name -> base_class:
 	CODE_BLOCK
 ```
 
-Inside a class both functions and variables can be defined. The class name has to follow the same naming conventions as a variable.
+Inside a class functions and variables can be defined. To access a class member the syntax is `obj.class_member`.
 
 All classes inherit from `evvy`. All types are classes themselves.
 
-To access a class member the syntax is `obj.class_member`.
+## Operators
+The following operators are available and in the given precedence
+
+1. () [] .
+2. + (unary) - (unary) ! ~ (type) (casting)
+3. * / %
+4. + -
+5. << >>
+6. < <= > >=
+7. == !=
+8. &
+9. ^
+10. |
+11. &&
+12. ||
+13. = += -= *= /= %= <<= >>= &= ^= |=
 
 ## Keywords
 The following words are keywords:
@@ -94,6 +112,12 @@ The following words are keywords:
  - `while`
  - `dowhile`
  - `classy`
+
+## List access
+To access an element in a lissy or diccy `variable[index]` is used.
+
+## import modules
+Other modules can be imported using `goto module_name`.
 
 ## Comments
 Line comments start with `#` or `//`. Block comments are contained within `/*` and `*/`.
