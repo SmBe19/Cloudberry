@@ -10,7 +10,44 @@ namespace cb {
 
 	AST::~AST() {}
 
-	Parser::Parser() {}
+	Parser::Parser() {
+		operatorPrecedence[Token::Type::op_parenthese_open] = 1;
+		operatorPrecedence[Token::Type::op_parenthese_close] = 1;
+		operatorPrecedence[Token::Type::op_bracket_open] = 1;
+		operatorPrecedence[Token::Type::op_bracket_close] = 1;
+		operatorPrecedence[Token::Type::op_access] = 1;
+		operatorPrecedence[Token::Type::op_not] = 2;
+		operatorPrecedence[Token::Type::op_bitnot] = 2;
+		operatorPrecedence[Token::Type::op_times] = 3;
+		operatorPrecedence[Token::Type::op_divide] = 3;
+		operatorPrecedence[Token::Type::op_mod] = 3;
+		operatorPrecedence[Token::Type::op_plus] = 4;
+		operatorPrecedence[Token::Type::op_minus] = 4;
+		operatorPrecedence[Token::Type::op_leftshift] = 5;
+		operatorPrecedence[Token::Type::op_rightshift] = 5;
+		operatorPrecedence[Token::Type::op_smaller] = 6;
+		operatorPrecedence[Token::Type::op_smallereq] = 6;
+		operatorPrecedence[Token::Type::op_greater] = 6;
+		operatorPrecedence[Token::Type::op_greatereq] = 6;
+		operatorPrecedence[Token::Type::op_equals] = 7;
+		operatorPrecedence[Token::Type::op_notequals] = 7;
+		operatorPrecedence[Token::Type::op_bitand] = 8;
+		operatorPrecedence[Token::Type::op_bitxor] = 9;
+		operatorPrecedence[Token::Type::op_bitor] = 10;
+		operatorPrecedence[Token::Type::op_and] = 11;
+		operatorPrecedence[Token::Type::op_or] = 12;
+		operatorPrecedence[Token::Type::op_assign] = 13;
+		operatorPrecedence[Token::Type::op_assignplus] = 13;
+		operatorPrecedence[Token::Type::op_assignminus] = 13;
+		operatorPrecedence[Token::Type::op_assigntimes] = 13;
+		operatorPrecedence[Token::Type::op_assigndivide] = 13;
+		operatorPrecedence[Token::Type::op_assignmod] = 13;
+		operatorPrecedence[Token::Type::op_assignleftshift] = 13;
+		operatorPrecedence[Token::Type::op_assignrightshift] = 13;
+		operatorPrecedence[Token::Type::op_assignbitand] = 13;
+		operatorPrecedence[Token::Type::op_assignbitxor] = 13;
+		operatorPrecedence[Token::Type::op_assignbitor] = 13;
+	}
 
 	Parser::~Parser() {}
 
@@ -23,6 +60,7 @@ namespace cb {
 		brainfuck_name,
 		brainfuck_types,
 		brainfuck_code,
+		function_args,
 	};
 
 	void addASTElement(AST &a_newast, AST &a_parent, std::stack<AST*> &a_currentASTs) {
@@ -39,12 +77,18 @@ namespace cb {
 		return true;
 	}
 
-	std::string tokenjoin(std::vector<Token> &a_tokens, size_t a_pos, size_t a_cnt) {
+	template<typename T>
+	std::string tokenjoin(std::vector<T> &a_tokens, size_t a_pos, size_t a_cnt) {
 		std::string res = "";
 		for (size_t i = a_pos; i < a_pos + a_cnt; i++) {
 			res += a_tokens[i].value + " ";
 		}
 		return res;
+	}
+
+	template<typename T>
+	std::string tokenjoin(std::vector<T> &a_tokens) {
+		return tokenjoin(a_tokens, 0, a_tokens.size());
 	}
 
 	int Parser::parse(std::vector<Token> &a_tokens) {
@@ -61,61 +105,193 @@ namespace cb {
 		Token::Type types_brainfuck_types[] = { Token::Type::bf_delimiter, Token::Type::colon };
 		Token::Type types_brainfuck_code[] = { Token::Type::bf_delimiter };
 		Token::Type types_classy[] = { Token::Type::identifier, Token::Type::op_inherit, Token::Type::identifier, Token::Type::colon };
+		Token::Type types_function_args[] = { Token::Type::op_parenthese_close, Token::Type::colon };
 
 		size_t tokensize = a_tokens.size();
 		ParserState state = ParserState::init;
 		std::stack<AST*> currentASTs;
-		std::vector<Token> unusedTokens;
+		std::vector<Token> unusedIdentifiers, unusedOperators;
+		std::vector<AST> unusedExpressions;
 		currentASTs.push(&root);
 		int currentIndentation = 0, oldIndentation = 0;
 		for (size_t pos = 0; pos < tokensize; pos++) {
 			Token t = a_tokens[pos];
 			AST &ca = *currentASTs.top();
-			AST na;
+			AST na, naa, naaa, naaaa, naaaaa; // batman
 
 			if (t.type != Token::Type::indent && t.type != Token::Type::newline) {
-				if (currentIndentation < oldIndentation) {
+				while (currentIndentation < oldIndentation) {
 					currentASTs.pop();
-					oldIndentation = currentIndentation;
+					oldIndentation--;
 				}
+				oldIndentation = currentIndentation;
 			}
 
 			switch (state) {
 			case ParserState::init:
 				switch (t.type) {
+				case Token::Type::indent:
+					currentIndentation++;
+					break;
+				case Token::Type::identifier:
+					unusedIdentifiers.push_back(t);
+					if (unusedIdentifiers.size() == 2) {
+						if (a_tokens[pos + 1].type == Token::Type::op_parenthese_open) {
+							// function
+							na = AST(AST::Type::function, unusedIdentifiers[1].value);
+							ca.children.push_back(na);
+							AST &caa = ca.children[ca.children.size() - 1];
+							na = AST(AST::Type::sequence, "");
+							addASTElement(na, caa, currentASTs);
+							na = AST(AST::Type::list, "");
+							addASTElement(na, caa, currentASTs);
+							state = ParserState::function_args;
+							pos++;
+						} else {
+							// variable declaration
+							na = AST(AST::Type::op_declare, "");
+							naa = AST(AST::Type::type, unusedIdentifiers[0].value);
+							na.children.push_back(naa);
+							naa = AST(AST::Type::identifier, unusedIdentifiers[1].value);
+							na.children.push_back(naa);
+							ca.children.push_back(na);
+							if (a_tokens[pos + 1].type != Token::Type::newline) {
+								unusedExpressions.push_back(naa);
+							}
+						}
+						unusedIdentifiers.clear();
+					}
+					break;
+				case Token::Type::colon:
+					break;
+				case Token::Type::comma:
+					break;
+				case Token::Type::newline:
+					currentIndentation = 0;
+					if (!unusedIdentifiers.empty() || !unusedOperators.empty() || !unusedExpressions.empty()) {
+						errorpos = pos;
+						errorstr = "init: unused tokens " + tokenjoin(unusedIdentifiers) + "; " + tokenjoin(unusedOperators) + "; " + tokenjoin(unusedExpressions);
+						return 1;
+					}
+					break;
 				case Token::Type::bf_delimiter:
 					state = ParserState::brainfuck_name;
 					na = AST(AST::Type::function, "");
 					addASTElement(na, ca, currentASTs);
 					break;
+				case Token::Type::val_strry:
+					break;
+				case Token::Type::val_nummy:
+					break;
+				case Token::Type::val_fuzzy:
+					break;
+				case Token::Type::kw_if:
+					break;
+				case Token::Type::kw_for:
+					break;
+				case Token::Type::kw_in:
+					break;
+				case Token::Type::kw_while:
+					break;
+				case Token::Type::kw_dowhile:
+					break;
 				case Token::Type::kw_classy:
+				{
+					std::string baseType = "evvy";
 					if (checkTypes(a_tokens, pos + 1, 4, types_classy)) {
-						na = AST(AST::Type::classy, a_tokens[pos + 1].value);
-						addASTElement(na, ca, currentASTs);
-						na = AST(AST::Type::type, a_tokens[pos + 3].value);
-						ca.children.push_back(na);
-						na = AST(AST::Type::sequence, "");
-						addASTElement(na, ca, currentASTs);
-						pos += 4;
-						oldIndentation = currentIndentation + 1;
-						break;
+						baseType = a_tokens[pos + 3].value;
+					} else if (checkTypes(a_tokens, pos + 1, 2, types_classy + 2)) {
 					} else {
 						errorpos = pos;
 						errorstr = "classy: invalid token " + tokenjoin(a_tokens, pos, 5);
 						return 1;
 					}
+					na = AST(AST::Type::classy, a_tokens[pos + 1].value);
+					ca.children.push_back(na);
+					AST &caa = ca.children[ca.children.size() - 1];
+					naa = AST(AST::Type::type, baseType);
+					caa.children.push_back(naa);
+					naa = AST(AST::Type::sequence, "");
+					addASTElement(naa, caa, currentASTs);
+					pos += 4;
+					oldIndentation = currentIndentation + 1;
 					break;
-				case Token::Type::identifier:
-					unusedTokens.push_back(t);
+				}
+				case Token::Type::kw_goto:
 					break;
-				case Token::Type::indent:
-					currentIndentation++;
+				case Token::Type::op_parenthese_open:
 					break;
-				case Token::Type::newline:
-					currentIndentation = 0;
-					if (!unusedTokens.empty()) {
-						errorstr = "init: unused tokens " + tokenjoin(unusedTokens, 0, unusedTokens.size());
-					}
+				case Token::Type::op_parenthese_close:
+					break;
+				case Token::Type::op_bracket_open:
+					break;
+				case Token::Type::op_bracket_close:
+					break;
+				case Token::Type::op_plus:
+					break;
+				case Token::Type::op_minus:
+					break;
+				case Token::Type::op_not:
+					break;
+				case Token::Type::op_bitnot:
+					break;
+				case Token::Type::op_times:
+					break;
+				case Token::Type::op_divide:
+					break;
+				case Token::Type::op_mod:
+					break;
+				case Token::Type::op_leftshift:
+					break;
+				case Token::Type::op_rightshift:
+					break;
+				case Token::Type::op_smaller:
+					break;
+				case Token::Type::op_smallereq:
+					break;
+				case Token::Type::op_greater:
+					break;
+				case Token::Type::op_greatereq:
+					break;
+				case Token::Type::op_equals:
+					break;
+				case Token::Type::op_notequals:
+					break;
+				case Token::Type::op_bitand:
+					break;
+				case Token::Type::op_bitxor:
+					break;
+				case Token::Type::op_bitor:
+					break;
+				case Token::Type::op_and:
+					break;
+				case Token::Type::op_or:
+					break;
+				case Token::Type::op_assign:
+					break;
+				case Token::Type::op_assignplus:
+					break;
+				case Token::Type::op_assignminus:
+					break;
+				case Token::Type::op_assigntimes:
+					break;
+				case Token::Type::op_assigndivide:
+					break;
+				case Token::Type::op_assignmod:
+					break;
+				case Token::Type::op_assignleftshift:
+					break;
+				case Token::Type::op_assignrightshift:
+					break;
+				case Token::Type::op_assignbitand:
+					break;
+				case Token::Type::op_assignbitxor:
+					break;
+				case Token::Type::op_assignbitor:
+					break;
+				case Token::Type::op_access:
+					break;
+				case Token::Type::op_inherit:
 					break;
 				default:
 					errorpos = pos;
@@ -177,6 +353,40 @@ namespace cb {
 				default:
 					errorpos = pos;
 					errorstr = "brainfuck_code: invalid token " + t.value;
+					return 1;
+				}
+				break;
+			case ParserState::function_args:
+				switch (t.type) {
+				case Token::Type::identifier:
+					unusedIdentifiers.push_back(t);
+					if (unusedIdentifiers.size() == 2) {
+						if (a_tokens[pos + 1].type != Token::Type::comma && a_tokens[pos + 1].type != Token::Type::op_parenthese_close) {
+							errorpos = pos;
+							errorstr = "function_args: invalid token " + t.value;
+							return 1;
+						}
+						na = AST(AST::Type::op_declare, "");
+						naa = AST(AST::Type::type, unusedIdentifiers[0].value);
+						na.children.push_back(naa);
+						naa = AST(AST::Type::identifier, unusedIdentifiers[1].value);
+						na.children.push_back(naa);
+						ca.children.push_back(na);
+						unusedIdentifiers.clear();
+					}
+					break;
+				case Token::Type::comma:
+					break;
+				case Token::Type::op_parenthese_close:
+					if (checkTypes(a_tokens, pos, 2, types_function_args)) {
+						currentASTs.pop();
+						oldIndentation = currentIndentation + 1;
+						state = ParserState::init;
+					}
+					// fall through
+				default:
+					errorpos = pos;
+					errorstr = "function_args: invalid token " + t.value;
 					return 1;
 				}
 				break;

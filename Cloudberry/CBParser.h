@@ -2,7 +2,9 @@
 #define CBPARSER_H
 
 #include <vector>
+#include <map>
 #include <stack>
+#include <iostream>
 
 #include "CBLexer.h"
 
@@ -15,6 +17,7 @@ namespace cb {
 			classy,
 			function,
 			type,
+			identifier,
 			brainfuck,
 			cs_if,
 			cs_for,
@@ -72,6 +75,7 @@ namespace cb {
 		int errorpos;
 	protected:
 		AST root;
+		std::map<Token::Type, int> operatorPrecedence;
 	};
 }
 

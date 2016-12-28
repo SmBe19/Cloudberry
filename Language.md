@@ -121,3 +121,6 @@ Other modules can be imported using `goto module_name`.
 
 ## Comments
 Line comments start with `#` or `//`. Block comments are contained within `/*` and `*/`.
+
+## Grammar
+TODO

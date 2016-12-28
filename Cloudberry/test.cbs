@@ -2,11 +2,14 @@
 
 $bf_add$charry:charry:charry$,>,[-<+>]<.$
 
-classy cbclass -> evvy:
+classy cbclass1:
+	nummy abc
+
+classy cbclass2 -> evvy:
 	nummy abc
 
 nummy cloudberry (nummy argc, lissy[strry] argv):
-	cbclass abcd
+	cbclass1 abcd
 	# for loop
 	for(0 <= i < 10):
 		// this is also a for loop
