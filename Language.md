@@ -19,7 +19,7 @@ The following types are available:
 Code blocks are partitioned using indentation (1 tab per level).
 
 ## Brainfuck
-The following syntax allows inline brainfuck: `$function_name$return_type:input_type:...$BF_CODE$;`
+The following syntax allows inline brainfuck: `$function_name$return_type:input_type:...$BF_CODE$`
 Using `,` the arguments can be read, in little endian and the order in which they appear in the arguments. The return value has to be given using `.` in little endian.
 
 ## Identifiers
@@ -35,7 +35,7 @@ Functions are defined using the following syntax:
 return_type function_name (argument_type argument_name, ...):
 	CODE_BLOCK
 ```
-	
+
 A function is called using `function_name(expression, ...)`
 
 ## Control Structures
@@ -121,6 +121,3 @@ Other modules can be imported using `goto module_name`.
 
 ## Comments
 Line comments start with `#` or `//`. Block comments are contained within `/*` and `*/`.
-
-## Grammar
-TODO

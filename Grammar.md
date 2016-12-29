@@ -1,0 +1,37 @@
+# Cloudberry Grammar
+```
+PROGRAM = { CLASS | FUNCTION | BRAINFUCK};
+CHAR = "A" | … | "Z" | "a" | … | "z";
+DECIMAL = "0" | … | "9";
+NUMBER = ["-"], "1" | … | "9", {DECIMAL};
+FLOAT = ["-"], NUMBER, ".", {DECIMAL};
+LVALUE = IDENTIFIER;
+RVALUE = IDENTIFIER | NUMBER | FLOAT | STRING | FUNCTION_CALL;
+IDENTIFIER = CHAR | "_", { CHAR | DECIMAL | "_" };
+TYPE = "nully", "evvy", "charry", "nummy", "fuzzy", "strry", LISSY, DICCY, IDENTIFIER;
+LISSY = "lissy", "[", TYPE, "]";
+DICCY = "diccy", "[", TYPE, ",", TYPE "]";
+CLASS = "classy", IDENTIFIER, ["->", IDENTIFIER], ":", SUITE;
+FUNCTION = TYPE, IDENTIFIER, "(", [TYPE, IDENTIFIER, {",", TYPE, IDENTIFIER}], ")", ":", SUITE;
+BRAINFUCK = "$", IDENTIFIER, "$", TYPE, {":", TYPE}, "$", BRAINFUCK_CODE, "$";
+BRAINFUCK_CODE = {CHAR | DECIMAL | "+", "-", "<", ">", "[", "]", ".", ","};
+SUITE = NEWLINE, INDENT, {STATEMENT}, DEDENT;
+DECLARATION = TYPE, IDENTIFIER;
+IF_STATEMENT = "if", "(", EXPRESSION, ")", ":", SUITE, ["else", ":", SUITE];
+FOR_STATEMENT = FOR_UP_STATEMENT | FOR_DOWN_STATEMENT | FOR_IN_STATEMENT;
+FOR_UP_STATEMENT = "for", "(", RVALUE, "<" | "<=", IDENTIFIER, "<" | "<=", RVALUE, ")", ":", SUITE;
+FOR_DOWN_STATEMENT = "for", "(", RVALUE, ">" | ">=", IDENTIFIER, ">" | ">=", RVALUE, ")", ":", SUITE;
+FOR_IN_STATEMENT = "for", "(", IDENTIFIER, "in", RVALUE, ")", ":", SUITE;
+WHILE_STATEMENT = "while", "(", EXPRESSION, ")", ":", SUITE;
+DOWHILE_STATEMENT = "dowhile", "(", EXPRESSION, ")", ":", SUITE;
+GOTO_STATEMENT = "goto", IDENTIFIER, {",", IDENTIFIER};
+STATEMENT = SIMPLE_STATEMENT | COMPOUND_STATEMENT;
+SIMPLE_STATEMENT = ASSIGN_STATEMENT | EXPRESSION;
+COMPOUND_STATEMENT = FOR_STATEMENT | IF_STATEMENT | WHILE_STATEMENT | DOWHILE_STATEMENT;
+ASSIGN_STATEMENT = DECLARATION | LVALUE, ASSIGN_OPERATOR, EXPRESSION;
+EXPRESSION = RVALUE, {OPERATOR, RVALUE};
+OPERATOR = BINARY_OPERATOR | ASSIGN_OPERATOR
+BINARY_OPERATOR = "+" | "-" | "*" | "/" | "%" | "!" | "~" | "<<" | ">>" | "<" | "<=" | ">" | ">=" | "==" | "!=" | "&" | "^" | "|" | "&&" | "||";
+ASSIGN_OPERATOR = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "&=" | "^=" | "|=";
+FUNCTION_CALL = IDENTIFIER, "(", [EXPRESSION, {",", EXPRESSION}], ")";
+```
