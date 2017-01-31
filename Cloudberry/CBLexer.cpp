@@ -3,9 +3,10 @@
 namespace cb {
 	Token::Token() {}
 
-	Token::Token(Token::Type a_type, std::string a_value) {
+	Token::Token(Token::Type a_type, std::string a_value, int a_line) {
 		type = a_type;
 		value = a_value;
+		line = a_line;
 	}
 
 	Token::~Token() {}
@@ -88,7 +89,7 @@ namespace cb {
 		bf_code,
 	};
 
-	int Lexer::lex(std::string a_code) {
+	int Lexer::lex(std::string a_code, int line) {
 		// add buffer at end
 		a_code += "\n";
 		size_t codesize = a_code.size();
@@ -104,20 +105,20 @@ namespace cb {
 			case LexerState::init:
 				if (c == ' ') {
 				} else if (c == '\t') {
-					newTokens.push_back(Token(Token::Type::indent, "\t"));
+					newTokens.push_back(Token(Token::Type::indent, "\t", line));
 				} else if (c == '\n') {
 				} else if (c == ':') {
-					newTokens.push_back(Token(Token::Type::colon, ":"));
+					newTokens.push_back(Token(Token::Type::colon, ":", line));
 				} else if (c == ',') {
-					newTokens.push_back(Token(Token::Type::comma, ","));
+					newTokens.push_back(Token(Token::Type::comma, ",", line));
 				} else if (c == '(') {
-					newTokens.push_back(Token(Token::Type::op_parenthese_open, "("));
+					newTokens.push_back(Token(Token::Type::op_parenthese_open, "(", line));
 				} else if (c == ')') {
-					newTokens.push_back(Token(Token::Type::op_parenthese_close, ")"));
+					newTokens.push_back(Token(Token::Type::op_parenthese_close, ")", line));
 				} else if (c == '[') {
-					newTokens.push_back(Token(Token::Type::op_bracket_open, "["));
+					newTokens.push_back(Token(Token::Type::op_bracket_open, "[", line));
 				} else if (c == ']') {
-					newTokens.push_back(Token(Token::Type::op_bracket_close, "]"));
+					newTokens.push_back(Token(Token::Type::op_bracket_close, "]", line));
 				} else if (c == '"') {
 					value = "";
 					state = LexerState::strry;
@@ -127,7 +128,7 @@ namespace cb {
 					state = LexerState::maybecomment;
 				} else if (c == '$') {
 					value = "";
-					newTokens.push_back(Token(Token::Type::bf_delimiter, "$"));
+					newTokens.push_back(Token(Token::Type::bf_delimiter, "$", line));
 					state = LexerState::bf_funcname;
 				} else if (c == '_' || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')) {
 					value = std::string({ c });
@@ -185,7 +186,7 @@ namespace cb {
 						errorstr = "unknown operator " + value;
 						return 1;
 					}
-					newTokens.push_back(Token(tokentype, value));
+					newTokens.push_back(Token(tokentype, value, line));
 					state = LexerState::init;
 					pos--;
 				}
@@ -198,7 +199,7 @@ namespace cb {
 					if (identifierToToken.find(value) != identifierToToken.end()) {
 						tokentype = identifierToToken[value];
 					}
-					newTokens.push_back(Token(tokentype, value));
+					newTokens.push_back(Token(tokentype, value, line));
 					state = LexerState::init;
 					pos--;
 				}
@@ -207,7 +208,7 @@ namespace cb {
 				if (c == '\\') {
 					state = LexerState::strry_escape;
 				} else if (c == '"') {
-					newTokens.push_back(Token(Token::Type::val_strry, value));
+					newTokens.push_back(Token(Token::Type::val_strry, value, line));
 					state = LexerState::init;
 				} else if (c == '\n') {
 					errorpos = pos;
@@ -273,7 +274,7 @@ namespace cb {
 				} else if (c == 'x' && !value.compare("0")){
 					value += c;
 				} else {
-					newTokens.push_back(Token(Token::Type::val_nummy, value));
+					newTokens.push_back(Token(Token::Type::val_nummy, value, line));
 					state = LexerState::init;
 					pos--;
 				}
@@ -282,7 +283,7 @@ namespace cb {
 				if ('0' <= c && c <= '9') {
 					value += c;
 				} else {
-					newTokens.push_back(Token(Token::Type::val_fuzzy, value));
+					newTokens.push_back(Token(Token::Type::val_fuzzy, value, line));
 					state = LexerState::init;
 					pos--;
 				}
@@ -291,9 +292,9 @@ namespace cb {
 				if (c == '_' || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9' && value.size() == 0)) {
 					value += c;
 				} else if (c == '$') {
-					newTokens.push_back(Token(Token::Type::bf_funcname, value));
+					newTokens.push_back(Token(Token::Type::bf_funcname, value, line));
 					value = "";
-					newTokens.push_back(Token(Token::Type::bf_delimiter, "$"));
+					newTokens.push_back(Token(Token::Type::bf_delimiter, "$", line));
 					state = LexerState::bf_type;
 				} else {
 					errorpos = pos;
@@ -305,14 +306,14 @@ namespace cb {
 				if (c == '_' || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9' && value.size() == 0)) {
 					value += c;
 				} else if (c == '$') {
-					newTokens.push_back(Token(Token::Type::bf_type, value));
+					newTokens.push_back(Token(Token::Type::bf_type, value, line));
 					value = "";
-					newTokens.push_back(Token(Token::Type::bf_delimiter, "$"));
+					newTokens.push_back(Token(Token::Type::bf_delimiter, "$", line));
 					state = LexerState::bf_code;
 				} else if (c == ':') {
-					newTokens.push_back(Token(Token::Type::bf_type, value));
+					newTokens.push_back(Token(Token::Type::bf_type, value, line));
 					value = "";
-					newTokens.push_back(Token(Token::Type::colon, ":"));
+					newTokens.push_back(Token(Token::Type::colon, ":", line));
 				} else {
 					errorpos = pos;
 					errorstr = "invalid character in brainfuck function name";
@@ -322,9 +323,9 @@ namespace cb {
 				break;
 			case LexerState::bf_code:
 				if (c == '$') {
-					newTokens.push_back(Token(Token::Type::bf_code, value));
+					newTokens.push_back(Token(Token::Type::bf_code, value, line));
 					value = "";
-					newTokens.push_back(Token(Token::Type::bf_delimiter, "$"));
+					newTokens.push_back(Token(Token::Type::bf_delimiter, "$", line));
 					state = LexerState::init;
 				} else {
 					value += c;
@@ -348,7 +349,8 @@ namespace cb {
 						break;
 					}
 				}
-				newTokens.push_back(Token(Token::Type::newline, "\\n"));
+				newTokens.push_back(Token(Token::Type::newline, "\\n", line));
+				line++;
 				if (anythingelse) {
 					tokens.insert(tokens.end(), newTokens.begin(), newTokens.end());
 					newTokens.clear();

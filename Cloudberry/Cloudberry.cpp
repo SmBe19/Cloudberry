@@ -4,6 +4,7 @@
 #include <string>
 #include <cstring>
 
+#include "CloudberryCompileOptions.h"
 #include "CBLexer.h"
 #include "CBParser.h"
 
@@ -24,7 +25,7 @@ std::vector<cb::Token> &lexFile(std::string a_file) {
 	std::string line;
 	int linenum = 1;
 	while (std::getline(fs, line)) {
-		if (lexer.lex(line)) {
+		if (lexer.lex(line, linenum)) {
 			std::cerr << "Lexer error " << linenum << ":" << lexer.errorpos << ": " << lexer.errorstr << std::endl;
 			error = errortype::lexer;
 			break;
@@ -36,7 +37,7 @@ std::vector<cb::Token> &lexFile(std::string a_file) {
 
 cb::AST &parseTokens(std::vector<cb::Token> &a_tokens) {
 	if (parser.parse(a_tokens)) {
-		std::cerr << "Parser error " << parser.errorpos << ": " << parser.errorstr << std::endl;
+		std::cerr << "Parser error " << parser.errorpos << ", line " << a_tokens[parser.errorpos].line << ": " << parser.errorstr << std::endl;
 		error = errortype::parser;
 	}
 	return parser.getRootAST();
@@ -51,7 +52,7 @@ void runAST(cb::AST &a_ast) {
 
 int main(int argc, char* argv[]) {
 	std::string inputfile = "";
-	std::string outfile = "a.exe";
+	std::string outfile = CB_DEFAULT_OUT;
 	bool compileFile = true;
 	for (int i = 1; i < argc; i++) {
 		if (!strcmp("-o", argv[i])) {

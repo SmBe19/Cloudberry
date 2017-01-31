@@ -78,17 +78,18 @@ namespace cb {
 			op_inherit,
 		};
 		Token();
-		Token(Type, std::string);
+		Token(Type, std::string, int);
 		~Token();
 		Type type;
 		std::string value;
+		int line;
 	};
 
 	class Lexer {
 	public:
 		Lexer();
 		~Lexer();
-		int lex(std::string);
+		int lex(std::string, int);
 		std::vector<Token> &getTokens();
 		std::string errorstr;
 		int errorpos;

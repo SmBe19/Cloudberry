@@ -86,6 +86,7 @@
   <ItemGroup>
     <ClInclude Include="CBLexer.h" />
     <ClInclude Include="CBParser.h" />
+    <ClInclude Include="CloudberryCompileOptions.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="test.cbs" />

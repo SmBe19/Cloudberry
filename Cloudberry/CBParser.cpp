@@ -47,6 +47,9 @@ namespace cb {
 		operatorPrecedence[Token::Type::op_assignbitand] = 13;
 		operatorPrecedence[Token::Type::op_assignbitxor] = 13;
 		operatorPrecedence[Token::Type::op_assignbitor] = 13;
+
+		errorpos = 0;
+		errorstr = "";
 	}
 
 	Parser::~Parser() {}
@@ -61,6 +64,8 @@ namespace cb {
 		brainfuck_types,
 		brainfuck_code,
 		function_args,
+		goto_args,
+		generic_stuff,
 	};
 
 	void addASTElement(AST &a_newast, AST &a_parent, std::stack<AST*> &a_currentASTs) {
@@ -93,13 +98,9 @@ namespace cb {
 
 	int Parser::parse(std::vector<Token> &a_tokens) {
 		// add buffer at end
-		a_tokens.push_back(Token(Token::Type::newline, "\\n"));
-		a_tokens.push_back(Token(Token::Type::newline, "\\n"));
-		a_tokens.push_back(Token(Token::Type::newline, "\\n"));
-		a_tokens.push_back(Token(Token::Type::newline, "\\n"));
-		a_tokens.push_back(Token(Token::Type::newline, "\\n"));
-		a_tokens.push_back(Token(Token::Type::newline, "\\n"));
-		a_tokens.push_back(Token(Token::Type::newline, "\\n"));
+		for (int i = 0; i < 7; ++i) {
+			a_tokens.push_back(Token(Token::Type::newline, "\\n", -1));
+		}
 
 		Token::Type types_brainfuck_name[] = { Token::Type::bf_delimiter };
 		Token::Type types_brainfuck_types[] = { Token::Type::bf_delimiter, Token::Type::colon };
@@ -110,8 +111,9 @@ namespace cb {
 		size_t tokensize = a_tokens.size();
 		ParserState state = ParserState::init;
 		std::stack<AST*> currentASTs;
+		std::stack<ParserState> lastStates;
 		std::vector<Token> unusedIdentifiers, unusedOperators;
-		std::vector<AST> unusedExpressions;
+		std::vector<AST> unusedTypes, unusedExpressions;
 		currentASTs.push(&root);
 		int currentIndentation = 0, oldIndentation = 0;
 		for (size_t pos = 0; pos < tokensize; pos++) {
@@ -134,31 +136,37 @@ namespace cb {
 					currentIndentation++;
 					break;
 				case Token::Type::identifier:
+					if (!unusedIdentifiers.empty()) {
+						unusedTypes.push_back(AST(AST::Type::type, unusedIdentifiers[0].value));
+						unusedIdentifiers.pop_back();
+					}
 					unusedIdentifiers.push_back(t);
-					if (unusedIdentifiers.size() == 2) {
+					if (unusedTypes.size() == 1 && unusedIdentifiers.size() == 1) {
 						if (a_tokens[pos + 1].type == Token::Type::op_parenthese_open) {
 							// function
-							na = AST(AST::Type::function, unusedIdentifiers[1].value);
+							na = AST(AST::Type::function, unusedIdentifiers[0].value);
 							ca.children.push_back(na);
-							AST &caa = ca.children[ca.children.size() - 1];
+							AST &caa = ca.children.back();
+							caa.children.push_back(unusedTypes[0]);
+							naa = AST(AST::Type::list, "");
+							caa.children.push_back(naa);
 							na = AST(AST::Type::sequence, "");
 							addASTElement(na, caa, currentASTs);
-							na = AST(AST::Type::list, "");
-							addASTElement(na, caa, currentASTs);
+							currentASTs.push(&(caa.children[caa.children.size() - 2]));
 							state = ParserState::function_args;
 							pos++;
 						} else {
 							// variable declaration
 							na = AST(AST::Type::op_declare, "");
-							naa = AST(AST::Type::type, unusedIdentifiers[0].value);
-							na.children.push_back(naa);
-							naa = AST(AST::Type::identifier, unusedIdentifiers[1].value);
+							na.children.push_back(unusedTypes[0]);
+							naa = AST(AST::Type::identifier, unusedIdentifiers[0].value);
 							na.children.push_back(naa);
 							ca.children.push_back(na);
 							if (a_tokens[pos + 1].type != Token::Type::newline) {
 								unusedExpressions.push_back(naa);
 							}
 						}
+						unusedTypes.clear();
 						unusedIdentifiers.clear();
 					}
 					break;
@@ -168,9 +176,9 @@ namespace cb {
 					break;
 				case Token::Type::newline:
 					currentIndentation = 0;
-					if (!unusedIdentifiers.empty() || !unusedOperators.empty() || !unusedExpressions.empty()) {
+					if (!unusedIdentifiers.empty() || !unusedOperators.empty() || !unusedTypes.empty() || !unusedExpressions.empty()) {
 						errorpos = pos;
-						errorstr = "init: unused tokens " + tokenjoin(unusedIdentifiers) + "; " + tokenjoin(unusedOperators) + "; " + tokenjoin(unusedExpressions);
+						errorstr = "init: unused tokens " + tokenjoin(unusedIdentifiers) + "; " + tokenjoin(unusedOperators) + "; " + tokenjoin(unusedTypes) + "; " + tokenjoin(unusedExpressions);
 						return 1;
 					}
 					break;
@@ -208,22 +216,33 @@ namespace cb {
 					}
 					na = AST(AST::Type::classy, a_tokens[pos + 1].value);
 					ca.children.push_back(na);
-					AST &caa = ca.children[ca.children.size() - 1];
+					AST &caa = ca.children.back();
 					naa = AST(AST::Type::type, baseType);
 					caa.children.push_back(naa);
 					naa = AST(AST::Type::sequence, "");
 					addASTElement(naa, caa, currentASTs);
 					pos += 4;
-					oldIndentation = currentIndentation + 1;
+					currentIndentation++;
 					break;
 				}
 				case Token::Type::kw_goto:
+					state = ParserState::goto_args;
 					break;
 				case Token::Type::op_parenthese_open:
 					break;
 				case Token::Type::op_parenthese_close:
 					break;
 				case Token::Type::op_bracket_open:
+					if (!unusedIdentifiers.empty()) {
+						unusedTypes.push_back(AST(AST::Type::type_generic, unusedIdentifiers[0].value));
+						unusedIdentifiers.pop_back();
+						lastStates.push(state);
+						state = ParserState::generic_stuff;
+					} else {
+						errorpos = pos;
+						errorstr = "init: invalid token " + t.value;
+						return 1;
+					}
 					break;
 				case Token::Type::op_bracket_close:
 					break;
@@ -359,34 +378,130 @@ namespace cb {
 			case ParserState::function_args:
 				switch (t.type) {
 				case Token::Type::identifier:
+					if (!unusedIdentifiers.empty()) {
+						unusedTypes.push_back(AST(AST::Type::type, unusedIdentifiers[0].value));
+						unusedIdentifiers.pop_back();
+					}
 					unusedIdentifiers.push_back(t);
-					if (unusedIdentifiers.size() == 2) {
+					if (unusedTypes.size() == 1 && unusedIdentifiers.size() == 1) {
 						if (a_tokens[pos + 1].type != Token::Type::comma && a_tokens[pos + 1].type != Token::Type::op_parenthese_close) {
 							errorpos = pos;
 							errorstr = "function_args: invalid token " + t.value;
 							return 1;
 						}
 						na = AST(AST::Type::op_declare, "");
-						naa = AST(AST::Type::type, unusedIdentifiers[0].value);
-						na.children.push_back(naa);
-						naa = AST(AST::Type::identifier, unusedIdentifiers[1].value);
+						na.children.push_back(unusedTypes[0]);
+						naa = AST(AST::Type::identifier, unusedIdentifiers[0].value);
 						na.children.push_back(naa);
 						ca.children.push_back(na);
+
+						unusedTypes.clear();
 						unusedIdentifiers.clear();
 					}
 					break;
 				case Token::Type::comma:
 					break;
+				case Token::Type::op_bracket_open:
+					if (!unusedIdentifiers.empty()) {
+						unusedTypes.push_back(AST(AST::Type::type_generic, unusedIdentifiers[0].value));
+						unusedIdentifiers.pop_back();
+						lastStates.push(state);
+						state = ParserState::generic_stuff;
+					} else {
+						errorpos = pos;
+						errorstr = "function_args: invalid token " + t.value;
+						return 1;
+					}
+					break;
 				case Token::Type::op_parenthese_close:
 					if (checkTypes(a_tokens, pos, 2, types_function_args)) {
 						currentASTs.pop();
-						oldIndentation = currentIndentation + 1;
+						currentIndentation++;
 						state = ParserState::init;
+						break;
 					}
 					// fall through
 				default:
 					errorpos = pos;
 					errorstr = "function_args: invalid token " + t.value;
+					return 1;
+				}
+				break;
+			case ParserState::goto_args:
+				switch (t.type) {
+				case Token::Type::identifier:
+					if (a_tokens[pos + 1].type != Token::Type::comma && a_tokens[pos + 1].type != Token::Type::newline) {
+						errorpos = pos;
+						errorstr = "goto_args: invalid token " + t.value;
+						return 1;
+					}
+					na = AST(AST::Type::cs_goto, t.value);
+					ca.children.push_back(na);
+					break;
+				case Token::Type::comma:
+					break;
+				case Token::Type::newline:
+					state = ParserState::init;
+					break;
+				default:
+					errorpos = pos;
+					errorstr = "goto_args: invalid token " + t.value;
+					return 1;
+				}
+				break;
+			case ParserState::generic_stuff:
+				switch (t.type) {
+				case Token::Type::identifier:
+					if (unusedIdentifiers.empty()) {
+						unusedIdentifiers.push_back(t);
+					} else {
+						errorpos = pos;
+						errorstr = "generic_stuff: invalid token " + t.value;
+						return 1;
+					}
+					break;
+				case Token::Type::comma:
+					if (unusedIdentifiers.size() == 1) {
+						unusedTypes.back().children.push_back(AST(AST::Type::type, unusedIdentifiers[0].value));
+					} else if (unusedTypes.size() > 2) {
+						unusedTypes[unusedTypes.size() - 2].children.push_back(unusedTypes.back());
+						unusedTypes.pop_back();
+					} else {
+						errorpos = pos;
+						errorstr = "generic_stuff: invalid token " + t.value;
+						return 1;
+					}
+					break;
+				case Token::Type::op_bracket_close:
+					if (unusedIdentifiers.size() == 1) {
+						unusedTypes.back().children.push_back(AST(AST::Type::type, unusedIdentifiers[0].value));
+					} else if (unusedTypes.size() > 2) {
+						unusedTypes[unusedTypes.size() - 2].children.push_back(unusedTypes.back());
+						unusedTypes.pop_back();
+					} else {
+						errorpos = pos;
+						errorstr = "generic_stuff: invalid token " + t.value;
+						return 1;
+					}
+					unusedIdentifiers.clear();
+					state = lastStates.top();
+					lastStates.pop();
+					break;
+				case Token::Type::op_bracket_open:
+					if (unusedIdentifiers.size() == 1) {
+						unusedTypes.push_back(AST(AST::Type::type_generic, unusedIdentifiers[0].value));
+						unusedIdentifiers.pop_back();
+						lastStates.push(state);
+						state = ParserState::generic_stuff;
+					} else {
+						errorpos = pos;
+						errorstr = "generic_stuff: invalid token " + t.value;
+						return 1;
+					}
+					break;
+				default:
+					errorpos = pos;
+					errorstr = "generic_stuff: invalid token " + t.value;
 					return 1;
 				}
 				break;

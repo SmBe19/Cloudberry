@@ -1,5 +1,7 @@
 #! /bin/cbc -r
 
+goto std
+
 $bf_add$charry:charry:charry$,>,[-<+>]<.$
 
 classy cbclass1:
