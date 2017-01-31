@@ -10,7 +10,7 @@ classy cbclass1:
 classy cbclass2 -> evvy:
 	nummy abc
 
-nummy cloudberry (nummy argc, lissy[strry] argv):
+nummy cloudberry (nummy argc, lissy<strry> argv):
 	cbclass1 abcd
 	# for loop
 	for(0 <= i < 10):

@@ -1,7 +1,7 @@
 # Cloudberry Language Specification
 
 ## Entry point
-All programs start at the function with the signature `nummy cloudberry (nummy argc, lissy[strry] argv)
+All programs start at the function with the signature `nummy cloudberry (nummy argc, lissy<strry> argv)
 
 ## Types
 The following types are available:
@@ -12,8 +12,8 @@ The following types are available:
  - `nummy`: 64 bit signed integer
  - `fuzzy`: 64 bit floating point
  - `strry`: string
- - `lissy[type]`: list (e.g. `lissy[charry]`)
- - `diccy[type, type]`: dictionary (e.g. `diccy[charry, nummy]`)
+ - `lissy<type>`: list (e.g. `lissy<charry>`)
+ - `diccy<type, type>`: dictionary (e.g. `diccy<charry, nummy>`)
 
 ## Code Blocks
 Code blocks are partitioned using indentation (1 tab per level).
@@ -54,7 +54,7 @@ else:
 ```
 
 ```
-for (i in list):
+for (type i in list):
 	CODE_BLOCK
 ```
 

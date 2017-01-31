@@ -20,8 +20,12 @@ namespace cb {
 			type_generic, // type [name, type:type, ...]
 			identifier, // identifier [name]
 			brainfuck, // brainfuck code [code]
+			val_nummy, // nummy val [val]
+			val_fuzzy, // fuzzy val [val]
+			val_strry, // strry val [val]
 			cs_if, // if [-, expression:expression, true:sequence, false:sequence]
-			cs_for, // for [-, init:sequence, check:sequence, update:sequence]
+			cs_for, // for [-, init:sequence, check:expression, update:sequence, body:sequence]
+			cs_forin, // forin [-, var:declare, iterable:expression, body:sequence]
 			cs_while, // while [-, expression:expression, body:sequence]
 			cs_dowhile, // dowhile [-, expression:expression, body:sequence]
 			cs_goto, // goto [name]
@@ -77,6 +81,7 @@ namespace cb {
 	protected:
 		AST root;
 		std::map<Token::Type, int> operatorPrecedence;
+		int weHaveError(int, std::string);
 	};
 }
 
