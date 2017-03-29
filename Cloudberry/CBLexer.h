@@ -19,7 +19,6 @@ namespace cb {
 			bf_delimiter,
 			bf_funcname,
 			bf_type,
-			bf_typedelimiter,
 			bf_code,
 			val_strry,
 			val_nummy,

@@ -15,7 +15,7 @@ namespace cb {
 			sequence, // list of commands [-, children:any, ...]
 			list, // list of AST elements [-, children:any, ...]
 			classy, // classy [name, baseType:type, body:sequence]
-			function, // function [name, returnType:type arguments:list, body:sequence]
+			function, // function [name, returnType:type, arguments:list, body:sequence] (arguments is list of op_declare)
 			type, // type [name]
 			type_generic, // type [name, type:type, ...]
 			identifier, // identifier [name]
@@ -70,6 +70,8 @@ namespace cb {
 		std::string value;
 	};
 
+	class ParserException {};
+
 	class Parser {
 	public:
 		Parser();
@@ -81,7 +83,32 @@ namespace cb {
 	protected:
 		AST root;
 		std::map<Token::Type, int> operatorPrecedence;
-		int weHaveError(int, std::string);
+		ParserException weHaveError(std::string);
+		int currentPosition;
+		std::vector<Token> *currentTokens;
+		std::stack<AST*> currentASTs;
+		std::vector<Token::Type> currentIndentation;
+		Token getTokenAt(int) const;
+		bool checkTypes(std::vector<Token::Type>& a_types, int a_offset) const;
+		bool checkTypes(std::vector<Token::Type>&) const;
+		bool readNewline();
+		bool parse_empty_line();
+		bool parse_indentation();
+		bool parse_goto();
+		bool parse_brainfuck();
+		bool parse_class();
+		bool parse_suite();
+		bool parse_function();
+		bool parse_statement();
+		bool parse_assign_statement();
+		bool parse_expression();
+		bool parse_for_statement();
+		bool parse_if_statement();
+		bool parse_while_statement();
+		bool parse_dowhile_statement();
+		bool parse_declaration();
+		bool parse_lvalue();
+		bool parse_rvalue();
 	};
 }
 
