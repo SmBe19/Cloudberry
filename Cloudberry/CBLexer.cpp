@@ -61,6 +61,8 @@ namespace cb {
 		operatorToToken["&="] = Token::Type::op_assignbitand;
 		operatorToToken["^="] = Token::Type::op_assignbitor;
 		operatorToToken["|="] = Token::Type::op_assignbitor;
+		operatorToToken["&&="] = Token::Type::op_assignand;
+		operatorToToken["||="] = Token::Type::op_assignor;
 		operatorToToken["."] = Token::Type::op_access;
 		operatorToToken["->"] = Token::Type::op_inherit;
 	}

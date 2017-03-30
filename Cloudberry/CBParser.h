@@ -14,8 +14,8 @@ namespace cb {
 		enum class Type {
 			sequence, // list of commands [-, children:any, ...]
 			list, // list of AST elements [-, children:any, ...]
-			classy, // classy [name, baseType:type, body:sequence]
-			function, // function [name, returnType:type, arguments:list, body:sequence] (arguments is list of op_declare)
+			classy, // classy [name, baseType:identifier, body:sequence]
+			function, // function [name, returnType:type, arguments:list<op_declare>
 			type, // type [name]
 			type_generic, // type [name, type:type, ...]
 			identifier, // identifier [name]
@@ -23,12 +23,14 @@ namespace cb {
 			val_nummy, // nummy val [val]
 			val_fuzzy, // fuzzy val [val]
 			val_strry, // strry val [val]
+			function_call, // func() [-, func:, arguments:list<rvalue>]
 			cs_if, // if [-, expression:expression, true:sequence, false:sequence]
 			cs_for, // for [-, init:sequence, check:expression, update:sequence, body:sequence]
 			cs_forin, // forin [-, var:declare, iterable:expression, body:sequence]
 			cs_while, // while [-, expression:expression, body:sequence]
 			cs_dowhile, // dowhile [-, expression:expression, body:sequence]
 			cs_goto, // goto [name]
+			op_access, // a.b [-, a:lvalue, b:identifier]
 			op_plus, // a + b [-, a:expression, b:expression]
 			op_minus, // a - b [-, a:expression, b:expression]
 			op_not, // !a [-, a:expression]
@@ -60,6 +62,8 @@ namespace cb {
 			op_assignbitand, // a &= b [-, a:lvalue, b:expression]
 			op_assignbitxor, // a ^= b [-, a:lvalue, b:expression]
 			op_assignbitor, // a |= b [-, a:lvalue, b:expression]
+			op_assignand, // a &&= b [-, a:lvalue, b:expression]
+			op_assignor, // a ||= b [-, a:lvalue, b:expression]
 			op_declare, // declare variable: a b [-, a:type, b:identifier]
 		};
 		AST();
@@ -97,18 +101,21 @@ namespace cb {
 		bool parse_goto();
 		bool parse_brainfuck();
 		bool parse_class();
-		bool parse_suite();
+		bool parse_suite(AST*, bool);
 		bool parse_function();
+		bool parse_type(AST*);
 		bool parse_statement();
 		bool parse_assign_statement();
-		bool parse_expression();
+		bool parse_function_call(AST*);
+		bool parse_expression(AST*);
 		bool parse_for_statement();
 		bool parse_if_statement();
 		bool parse_while_statement();
 		bool parse_dowhile_statement();
 		bool parse_declaration();
-		bool parse_lvalue();
-		bool parse_rvalue();
+		bool parse_identifier(AST*);
+		bool parse_lvalue(AST*);
+		bool parse_rvalue(AST*);
 	};
 }
 

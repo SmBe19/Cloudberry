@@ -1,5 +1,6 @@
 *.exe
 *.o
+Cloudberry.opensdf
 Cloudberry.sdf
 Cloudberry.v12.suo
 Debug

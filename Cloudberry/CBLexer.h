@@ -73,6 +73,8 @@ namespace cb {
 			op_assignbitand,
 			op_assignbitxor,
 			op_assignbitor,
+			op_assignand,
+			op_assignor,
 			op_access,
 			op_inherit,
 		};
