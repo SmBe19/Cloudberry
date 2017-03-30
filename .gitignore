@@ -1,0 +1,5 @@
+*.exe
+*.o
+Cloudberry.sdf
+Cloudberry.v12.suo
+Debug
