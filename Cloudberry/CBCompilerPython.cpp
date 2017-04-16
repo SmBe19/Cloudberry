@@ -196,7 +196,16 @@ namespace cb {
 		case AST::Type::op_listaccess:
 			compileNode(a_ast.children[0]);
 			fs << "[";
-			compileNode(a_ast.children[1]);
+			{
+				bool first = true;
+				for (AST &ast : a_ast.children[1].children) {
+					if (!first) {
+						fs << ", ";
+					}
+					compileNode(ast);
+					first = false;
+				}
+			}
 			fs << "]";
 			break;
 		case AST::Type::op_plus:

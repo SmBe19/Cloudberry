@@ -214,10 +214,11 @@ namespace cb {
 		AST ast_func = createAST(AST::Type::function, name);
 		AST ast_ret = createAST(AST::Type::type, returnType);
 		AST ast_arglist = createAST(AST::Type::list);
+		int argnum = 0;
 		for (std::string argument : arguments) {
 			AST ast_arg = createAST(AST::Type::op_declare);
 			AST ast_argtype = createAST(AST::Type::type, argument);
-			AST ast_argname = createAST(AST::Type::identifier);
+			AST ast_argname = createAST(AST::Type::identifier, "bf_" + std::to_string(argnum++));
 			ast_arg.children.push_back(ast_argtype);
 			ast_arg.children.push_back(ast_argname);
 			ast_arglist.children.push_back(ast_arg);
@@ -542,6 +543,7 @@ namespace cb {
 					values.push(ast_rvalue);
 				}
 				ops.push(tok_now);
+				currentPosition += 1;
 				break;
 			default:
 				currentPosition = oldPosition;
@@ -594,10 +596,10 @@ namespace cb {
 		AST ast_init_declare_name = createAST(AST::Type::identifier, name);
 		ast_init_declare.children.push_back(ast_init_declare_type);
 		ast_init_declare.children.push_back(ast_init_declare_name);
-		ast_init.children.push_back(ast_init);
+		ast_init.children.push_back(ast_init_declare);
 		AST ast_one = createAST(AST::Type::val_nummy, "1");
 		if (!is_eq) {
-			AST ast_nrvalue1 = createAST(is_up ? AST::Type::op_minus : AST::Type::op_plus);
+			AST ast_nrvalue1 = createAST(is_up ? AST::Type::op_plus : AST::Type::op_minus);
 			ast_nrvalue1.children.push_back(ast_rvalue1);
 			ast_nrvalue1.children.push_back(ast_one);
 			ast_rvalue1 = ast_nrvalue1;
@@ -611,7 +613,7 @@ namespace cb {
 		ast_check.children.push_back(ast_init_declare_name);
 		ast_check.children.push_back(ast_rvalue2);
 		AST ast_update = createAST(AST::Type::sequence);
-		AST ast_update_change = createAST(is_up ? AST::Type::op_plus : AST::Type::op_minus);
+		AST ast_update_change = createAST(is_up ? AST::Type::op_assignplus : AST::Type::op_assignminus);
 		ast_update_change.children.push_back(ast_init_declare_name);
 		ast_update_change.children.push_back(ast_one);
 		ast_update.children.push_back(ast_update_change);
@@ -680,6 +682,7 @@ namespace cb {
 	bool Parser::parse_iflike_statement(Token::Type a_kwtype, AST::Type a_asttype, bool a_elseblock, bool a_copyexpressionchildren, bool(Parser::*a_parse_expression)(AST*)) {
 		std::vector<Token::Type> reqStart = { a_kwtype, Token::Type::op_parenthese_open };
 		std::vector<Token::Type> reqEnd = { Token::Type::op_parenthese_close, Token::Type::colon, Token::Type::newline };
+		std::vector<Token::Type> reqElse = { Token::Type::kw_else, Token::Type::colon, Token::Type::newline };
 		if (!checkTypes(reqStart)) {
 			return false;
 		}
@@ -698,12 +701,14 @@ namespace cb {
 		parse_suite(&ast_true, false);
 		AST ast_false;
 		if (a_elseblock) {
-			if (getTokenAt(0).type == Token::Type::kw_else) {
-				currentPosition += 1;
+			int oldPosition = currentPosition;
+			if (parse_indentation() && checkTypes(reqElse)) {
+				currentPosition += 3;
 				if (!parse_suite(&ast_false, false)) {
 					throw weHaveError("Expected else block");
 				}
 			} else {
+				currentPosition = oldPosition;
 				ast_false = createAST(AST::Type::sequence);
 			}
 		}
@@ -832,6 +837,9 @@ namespace cb {
 	}
 
 	bool Parser::parse_rvalue(AST *a_ast, bool a_allow_expression) {
+		if (a_allow_expression && parse_expression(a_ast)) {
+			return true;
+		}
 		switch (getTokenAt(0).type) {
 		case Token::Type::val_strry:
 			*a_ast = createAST(AST::Type::val_strry, getTokenAt(0).value);
@@ -847,7 +855,7 @@ namespace cb {
 			return true;
 		default:;
 		}
-		return parse_function_call(a_ast) || parse_lvalue(a_ast) || (a_allow_expression && parse_expression(a_ast));
+		return parse_function_call(a_ast) || parse_lvalue(a_ast);
 	}
 
 	int Parser::parse(std::vector<Token> &a_tokens) {

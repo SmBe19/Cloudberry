@@ -1,6 +1,6 @@
 #! /bin/cbc -r
 
-goto std
+goto math
 
 $bf_add$charry:charry:charry$,>,[-<+>]<.$
 
@@ -19,4 +19,10 @@ nummy cloudberry (nummy argc, lissy<strry> argv):
 			/* prints something */
 			print(i, j, bf_add(i, j))
 			abcd.abc += 1
+		if(i > 6):
+			print("Hi there")
+		else:
+			print(i)
 	print(abcd.abc)
+	print(argc)
+	print("usage: " + argv[0])
