@@ -2,5 +2,9 @@
 #define CLOUDBERRYCOMPILEOPTIONS_H
 
 #define CB_DEFAULT_OUT "a.exe"
+#define CB_DEFAULT_OUT_PYTHON "a.py"
+#define CB_DEFAULT_OUT_CXX "a.cxx"
+#define CB_DEFAULT_OUT_C "a.c"
+#define CB_DEFAULT_OUT_ASM "a.s"
 
 #endif // !CLOUDBERRYCOMPILEOPTIONS_H

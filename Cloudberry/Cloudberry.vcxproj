@@ -79,11 +79,13 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CBCompilerPython.cpp" />
     <ClCompile Include="CBLexer.cpp" />
     <ClCompile Include="CBParser.cpp" />
     <ClCompile Include="Cloudberry.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CBCompilerPython.h" />
     <ClInclude Include="CBLexer.h" />
     <ClInclude Include="CBParser.h" />
     <ClInclude Include="CloudberryCompileOptions.h" />
