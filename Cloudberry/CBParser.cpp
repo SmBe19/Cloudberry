@@ -87,6 +87,7 @@ namespace cb {
 		errorstr = "";
 		currentPosition = 0;
 		currentTokens = nullptr;
+		root = createAST(AST::Type::sequence, "", -1);
 	}
 
 	Parser::~Parser() {}
@@ -271,6 +272,7 @@ namespace cb {
 
 	bool Parser::parse_suite(AST *a_ast, bool a_only_declaration) {
 		currentIndentation.push_back(Token::Type::indent);
+		*a_ast = createAST(AST::Type::sequence);
 		currentASTs.push(a_ast);
 		bool wasEmpty = false;
 		while (((wasEmpty = parse_empty_line())) || parse_indentation()) {
@@ -749,7 +751,7 @@ namespace cb {
 
 		currentASTs.top()->children.push_back(ast_declare);
 
-		if (getTokenAt(1).type == Token::Type::op_equals) {
+		if (getTokenAt(1).type == Token::Type::op_assign) {
 			if (!parse_assign_statement()) {
 				throw weHaveError("Invalid assign statement in declaration");
 			}

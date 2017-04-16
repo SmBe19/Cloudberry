@@ -52,7 +52,7 @@ cb::AST &parseTokens(std::vector<cb::Token> &a_tokens) {
 	return parser.getRootAST();
 }
 
-void compileAST(cb::AST a_ast, compilerbackend backend, std::string &a_file) {
+void compileAST(cb::AST &a_ast, compilerbackend backend, std::string &a_file) {
 	switch (backend) {
 	case compilerbackend::python:
 		if (compilerPython.compile(a_ast, a_file)) {

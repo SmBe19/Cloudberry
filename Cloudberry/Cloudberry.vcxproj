@@ -91,6 +91,7 @@
     <ClInclude Include="CloudberryCompileOptions.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="fizzbuzz.cbs" />
     <None Include="test.cbs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -47,5 +47,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="test.cbs" />
+    <None Include="fizzbuzz.cbs" />
   </ItemGroup>
 </Project>

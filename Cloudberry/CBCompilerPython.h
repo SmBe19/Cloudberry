@@ -2,6 +2,7 @@
 #define CBCOMPILERPYTHON_H
 
 #include <fstream>
+#include <iostream>
 
 #include "CBParser.h"
 #include "CloudberryCompileOptions.h"

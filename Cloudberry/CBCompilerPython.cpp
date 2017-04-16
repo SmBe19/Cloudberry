@@ -1,6 +1,7 @@
 ﻿#include "CBCompilerPython.h"
 
 namespace cb {
+
 	CompilerPython::CompilerPython() {
 		errorpos = nullptr;
 		errorstr = "";
@@ -330,7 +331,6 @@ namespace cb {
 			throw weHaveError(a_ast, "Unknown AST type");
 		}
 	}
-
 
 	int CompilerPython::compile(AST &a_ast, std::string &a_file) {
 		if (a_file.size() == 0) {
