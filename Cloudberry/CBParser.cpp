@@ -48,6 +48,41 @@ namespace cb {
 		operatorPrecedence[Token::Type::op_assignbitxor] = 13;
 		operatorPrecedence[Token::Type::op_assignbitor] = 13;
 
+		tokenToAstType[Token::Type::op_plus] = AST::Type::op_plus;
+		tokenToAstType[Token::Type::op_minus] = AST::Type::op_minus;
+		tokenToAstType[Token::Type::op_not] = AST::Type::op_not;
+		tokenToAstType[Token::Type::op_bitnot] = AST::Type::op_bitnot;
+		tokenToAstType[Token::Type::op_times] = AST::Type::op_times;
+		tokenToAstType[Token::Type::op_divide] = AST::Type::op_divide;
+		tokenToAstType[Token::Type::op_mod] = AST::Type::op_mod;
+		tokenToAstType[Token::Type::op_leftshift] = AST::Type::op_leftshift;
+		tokenToAstType[Token::Type::op_rightshift] = AST::Type::op_rightshift;
+		tokenToAstType[Token::Type::op_smaller] = AST::Type::op_smaller;
+		tokenToAstType[Token::Type::op_smallereq] = AST::Type::op_smallereq;
+		tokenToAstType[Token::Type::op_greater] = AST::Type::op_greater;
+		tokenToAstType[Token::Type::op_greatereq] = AST::Type::op_greatereq;
+		tokenToAstType[Token::Type::op_equals] = AST::Type::op_equals;
+		tokenToAstType[Token::Type::op_notequals] = AST::Type::op_notequals;
+		tokenToAstType[Token::Type::op_bitand] = AST::Type::op_bitand;
+		tokenToAstType[Token::Type::op_bitxor] = AST::Type::op_bitxor;
+		tokenToAstType[Token::Type::op_bitor] = AST::Type::op_bitor;
+		tokenToAstType[Token::Type::op_and] = AST::Type::op_and;
+		tokenToAstType[Token::Type::op_or] = AST::Type::op_or;
+		tokenToAstType[Token::Type::op_assign] = AST::Type::op_assign;
+		tokenToAstType[Token::Type::op_assignplus] = AST::Type::op_assignplus;
+		tokenToAstType[Token::Type::op_assignminus] = AST::Type::op_assignminus;
+		tokenToAstType[Token::Type::op_assigntimes] = AST::Type::op_assigntimes;
+		tokenToAstType[Token::Type::op_assigndivide] = AST::Type::op_assigndivide;
+		tokenToAstType[Token::Type::op_assignmod] = AST::Type::op_assignmod;
+		tokenToAstType[Token::Type::op_assignleftshift] = AST::Type::op_assignleftshift;
+		tokenToAstType[Token::Type::op_assignrightshift] = AST::Type::op_assignrightshift;
+		tokenToAstType[Token::Type::op_assignbitand] = AST::Type::op_assignbitand;
+		tokenToAstType[Token::Type::op_assignbitxor] = AST::Type::op_assignbitxor;
+		tokenToAstType[Token::Type::op_assignbitor] = AST::Type::op_assignbitor;
+		tokenToAstType[Token::Type::op_assignand] = AST::Type::op_assignand;
+		tokenToAstType[Token::Type::op_assignor] = AST::Type::op_assignor;
+		tokenToAstType[Token::Type::op_access] = AST::Type::op_access;
+
 		errorpos = 0;
 		errorstr = "";
 		currentPosition = 0;
@@ -107,6 +142,7 @@ namespace cb {
 
 	bool Parser::parse_empty_line() {
 		int i;
+		// ReSharper disable once CppPossiblyErroneousEmptyStatements
 		for (i = 0; getTokenAt(i).type == Token::Type::indent; i++);
 		if (getTokenAt(i).type == Token::Type::newline) {
 			currentPosition += i + 1;
@@ -319,37 +355,17 @@ namespace cb {
 		AST ast_op;
 		switch (getTokenAt(0).type) {
 		case Token::Type::op_assign:
-			ast_op = AST(AST::Type::op_assign, "");
-			break;
 		case Token::Type::op_assignplus:
-			ast_op = AST(AST::Type::op_assignplus, "");
-			break;
 		case Token::Type::op_assignminus:
-			ast_op = AST(AST::Type::op_assignminus, "");
-			break;
 		case Token::Type::op_assigntimes:
-			ast_op = AST(AST::Type::op_assigntimes, "");
-			break;
 		case Token::Type::op_assigndivide:
-			ast_op = AST(AST::Type::op_assigndivide, "");
-			break;
 		case Token::Type::op_assignmod:
-			ast_op = AST(AST::Type::op_assignmod, "");
-			break;
 		case Token::Type::op_assignleftshift:
-			ast_op = AST(AST::Type::op_assignleftshift, "");
-			break;
 		case Token::Type::op_assignrightshift:
-			ast_op = AST(AST::Type::op_assignrightshift, "");
-			break;
 		case Token::Type::op_assignbitand:
-			ast_op = AST(AST::Type::op_assignbitand, "");
-			break;
 		case Token::Type::op_assignbitxor:
-			ast_op = AST(AST::Type::op_assignbitxor, "");
-			break;
 		case Token::Type::op_assignbitor:
-			ast_op = AST(AST::Type::op_assignbitor, "");
+			ast_op = AST(tokenToAstType[getTokenAt(0).type], "");
 			break;
 		default:
 			currentPosition = oldPosition;
@@ -371,28 +387,316 @@ namespace cb {
 	}
 
 	bool Parser::parse_function_call(AST *a_ast) {
+		return parse_list_or_function(a_ast, Token::Type::op_parenthese_open, Token::Type::op_parenthese_close);
+	}
+
+	bool Parser::parse_listaccess(AST *a_ast) {
+		return parse_list_or_function(a_ast, Token::Type::op_bracket_open, Token::Type::op_bracket_close);
+	}
+
+	bool Parser::parse_list_or_function(AST *a_ast, Token::Type a_open, Token::Type a_close) {
+		int oldPosition = currentPosition;
+		AST ast_lvalue;
+		if (!parse_lvalue(&ast_lvalue) || getTokenAt(0).type != a_open) {
+			currentPosition = oldPosition;
+			return false;
+		}
+
+		*a_ast = AST(AST::Type::function_call, "");
+		a_ast->children.push_back(ast_lvalue);
+		AST ast_arguments = AST(AST::Type::list, "");
+		AST ast_argument;
+		while (getTokenAt(0).type != a_close) {
+			if (!parse_rvalue(&ast_argument, true)) {
+				throw weHaveError("Expected argument");
+			}
+			ast_arguments.children.push_back(ast_argument);
+			if (getTokenAt(0).type != Token::Type::comma
+				&& getTokenAt(1).type != a_close) {
+				throw weHaveError("Expected , or )");
+			}
+		}
+		a_ast->children.push_back(ast_arguments);
+
+		currentPosition += 1;
+		return true;
+	}
+
+
+	bool Parser::parse_expression_statement() {
+		AST ast_expr;
+		if (parse_expression(&ast_expr)) {
+			currentASTs.top()->children.push_back(ast_expr);
+			return true;
+		}
 		return false;
 	}
 
+
 	bool Parser::parse_expression(AST *a_ast) {
-		return false;
+		std::stack<Token> ops;
+		std::stack<AST> values;
+
+		int oldPosition = currentPosition;
+
+		bool stillInExpression = true;
+		while (stillInExpression) {
+			AST ast_rvalue;
+			if (parse_rvalue(&ast_rvalue, false)) {
+				values.push(ast_rvalue);
+				continue;
+			}
+			Token tok_now;
+			switch (getTokenAt(0).type) {
+			case Token::Type::op_parenthese_open:
+				currentPosition += 1;
+				if (parse_expression(&ast_rvalue) && getTokenAt(0).type == Token::Type::op_parenthese_close) {
+					values.push(ast_rvalue);
+					currentPosition += 1;
+				} else {
+					throw weHaveError("Malformed expression");
+				}
+				break;
+			case Token::Type::op_parenthese_close:
+			case Token::Type::op_bracket_close:
+			case Token::Type::newline:
+				while (!ops.empty()) {
+					if (values.size() < 2) {
+						throw weHaveError("Too few values in expression");
+					}
+					ast_rvalue = AST(tokenToAstType[ops.top().type], "");
+					ops.pop();
+					AST ast2 = values.top();
+					values.pop();
+					AST ast1 = values.top();
+					values.pop();
+					ast_rvalue.children.push_back(ast1);
+					ast_rvalue.children.push_back(ast2);
+					values.push(ast_rvalue);
+				}
+				stillInExpression = true;
+				break;
+			case Token::Type::op_plus:
+			case Token::Type::op_minus:
+			case Token::Type::op_not:
+			case Token::Type::op_bitnot:
+			case Token::Type::op_times:
+			case Token::Type::op_divide:
+			case Token::Type::op_mod:
+			case Token::Type::op_leftshift:
+			case Token::Type::op_rightshift:
+			case Token::Type::op_smaller:
+			case Token::Type::op_smallereq:
+			case Token::Type::op_greater:
+			case Token::Type::op_greatereq:
+			case Token::Type::op_equals:
+			case Token::Type::op_notequals:
+			case Token::Type::op_bitand:
+			case Token::Type::op_bitxor:
+			case Token::Type::op_bitor:
+			case Token::Type::op_and:
+			case Token::Type::op_or:
+			case Token::Type::op_access:
+				tok_now = getTokenAt(0);
+				while (!ops.empty() && operatorPrecedence[ops.top().type] <= operatorPrecedence[tok_now.type]) {
+					if (values.size() < 2) {
+						throw weHaveError("Too few values in expression");
+					}
+					ast_rvalue = AST(tokenToAstType[ops.top().type], "");
+					ops.pop();
+					AST ast2 = values.top();
+					values.pop();
+					AST ast1 = values.top();
+					values.pop();
+					ast_rvalue.children.push_back(ast1);
+					ast_rvalue.children.push_back(ast2);
+					values.push(ast_rvalue);
+				}
+				ops.push(tok_now);
+				break;
+			default:
+				currentPosition = oldPosition;
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool Parser::parse_for_expression(AST *a_ast) {
+		*a_ast = AST(AST::Type::sequence, "");
+		int oldPosition = currentPosition;
+		AST ast_rvalue1;
+		if (!parse_rvalue(&ast_rvalue1, true)
+			|| getTokenAt(0).type != Token::Type::op_parenthese_close
+			|| getTokenAt(2).type != Token::Type::identifier) {
+			currentPosition = oldPosition;
+			return false;
+		}
+
+		Token tok_now = getTokenAt(1);
+		bool is_up = tok_now.type == Token::Type::op_smaller || tok_now.type == Token::Type::op_smallereq;
+		bool is_eq = tok_now.type == Token::Type::op_smallereq || tok_now.type == Token::Type::op_greatereq;
+		if (!is_up && tok_now.type != Token::Type::op_greater && tok_now.type != Token::Type::op_greatereq) {
+			currentPosition = oldPosition;
+			return false;
+		}
+
+		std::string name = getTokenAt(2).value;
+
+		currentPosition += 3;
+
+		Token tok_now2 = getTokenAt(0);
+
+		if (is_up && tok_now2.type != Token::Type::op_smaller && tok_now2.type != Token::Type::op_smallereq) {
+			throw weHaveError("For: wrong operator");
+		} else if (!is_up && tok_now2.type != Token::Type::op_greater && tok_now2.type != Token::Type::op_greatereq) {
+			throw weHaveError("For: wrong operator");
+		}
+
+		AST ast_rvalue2;
+		if (!parse_rvalue(&ast_rvalue2, true)) {
+			throw weHaveError("Expected Expression");
+		}
+
+		AST ast_init = AST(AST::Type::sequence, "");
+		AST ast_init_declare = AST(AST::Type::op_declare, "");
+		AST ast_init_declare_type = AST(AST::Type::type, "nummy");
+		AST ast_init_declare_name = AST(AST::Type::identifier, name);
+		ast_init_declare.children.push_back(ast_init_declare_type);
+		ast_init_declare.children.push_back(ast_init_declare_name);
+		ast_init.children.push_back(ast_init);
+		AST ast_one = AST(AST::Type::val_nummy, "1");
+		if (!is_eq) {
+			AST ast_nrvalue1 = AST(is_up ? AST::Type::op_minus : AST::Type::op_plus, "");
+			ast_nrvalue1.children.push_back(ast_rvalue1);
+			ast_nrvalue1.children.push_back(ast_one);
+			ast_rvalue1 = ast_nrvalue1;
+		}
+		AST ast_init_assign = AST(AST::Type::op_assign, "");
+		ast_init_assign.children.push_back(ast_init_declare_name);
+		ast_init_assign.children.push_back(ast_rvalue1);
+		ast_init.children.push_back(ast_init_assign);
+
+		AST ast_check = AST(tokenToAstType[tok_now2.type], "");
+		ast_check.children.push_back(ast_init_declare_name);
+		ast_check.children.push_back(ast_rvalue2);
+		AST ast_update = AST(AST::Type::sequence, "");
+		AST ast_update_change = AST(is_up ? AST::Type::op_plus : AST::Type::op_minus, "");
+		ast_update_change.children.push_back(ast_init_declare_name);
+		ast_update_change.children.push_back(ast_one);
+		ast_update.children.push_back(ast_update_change);
+
+		a_ast->children.push_back(ast_init);
+		a_ast->children.push_back(ast_check);
+		a_ast->children.push_back(ast_update);
+
+		return true;
+	}
+
+	bool Parser::parse_forin_expression(AST *a_ast) {
+		*a_ast = AST(AST::Type::sequence, "");
+		int oldPosition = currentPosition;
+		AST ast_type;
+		if (!parse_type(&ast_type) || getTokenAt(0).type != Token::Type::identifier) {
+			currentPosition = oldPosition;
+			return false;
+		}
+		std::string name = getTokenAt(0).value;
+		AST ast_declare = AST(AST::Type::op_declare, "");
+		AST ast_name = AST(AST::Type::identifier, name);
+		ast_declare.children.push_back(ast_type);
+		ast_declare.children.push_back(ast_name);
+
+		currentPosition += 1;
+
+		if (getTokenAt(0).type != Token::Type::kw_in) {
+			currentPosition = oldPosition;
+			return false;
+		}
+		currentPosition += 1;
+
+		AST ast_rvalue;
+		if (!parse_rvalue(&ast_rvalue, true)) {
+			currentPosition = oldPosition;
+			return false;
+		}
+
+		a_ast->children.push_back(ast_declare);
+		a_ast->children.push_back(ast_rvalue);
+
+		return true;
 	}
 
 	bool Parser::parse_for_statement() {
-		return false;
+		return parse_iflike_statement(Token::Type::kw_for, AST::Type::cs_for, false, true, &Parser::parse_for_expression);
+	}
+
+	bool Parser::parse_forin_statement() {
+		return parse_iflike_statement(Token::Type::kw_forin, AST::Type::cs_forin, false, true, &Parser::parse_forin_expression);
 	}
 
 	bool Parser::parse_if_statement() {
-		return false;
+		return parse_iflike_statement(Token::Type::kw_if, AST::Type::cs_if, true, false, &Parser::parse_expression);
 	}
 
 	bool Parser::parse_while_statement() {
-		return false;
+		return parse_iflike_statement(Token::Type::kw_while, AST::Type::cs_while, false, false, &Parser::parse_expression);
 	}
 
 	bool Parser::parse_dowhile_statement() {
-		return false;
+		return parse_iflike_statement(Token::Type::kw_dowhile, AST::Type::cs_dowhile, false, false, &Parser::parse_expression);
 	}
+
+	bool Parser::parse_iflike_statement(Token::Type a_kwtype, AST::Type a_asttype, bool a_elseblock, bool a_copyexpressionchildren, bool(Parser::*a_parse_expression)(AST*)) {
+		std::vector<Token::Type> reqStart = { a_kwtype, Token::Type::op_parenthese_open };
+		std::vector<Token::Type> reqEnd = { Token::Type::op_parenthese_close, Token::Type::colon, Token::Type::newline };
+		if (!checkTypes(reqStart)) {
+			return false;
+		}
+		currentPosition += 2;
+
+		AST ast_expr;
+		if (!(this->*a_parse_expression)(&ast_expr)) {
+			throw weHaveError("Expected for expression");
+		}
+		if (checkTypes(reqEnd)) {
+			throw weHaveError("Expected ):\n");
+		}
+		currentPosition += 3;
+
+		AST ast_true;
+		parse_suite(&ast_true, true);
+		AST ast_false;
+		if (a_elseblock) {
+			if (getTokenAt(0).type == Token::Type::kw_else) {
+				currentPosition += 1;
+				if (!parse_suite(&ast_false, true)) {
+					throw weHaveError("Expected else block");
+				}
+			} else {
+				ast_false = AST(AST::Type::sequence, "");
+			}
+		}
+
+		AST ast_if = AST(a_asttype, "");
+		if (a_copyexpressionchildren) {
+			for (AST &c : ast_expr.children) {
+				ast_if.children.push_back(c);
+			}
+		} else {
+			ast_if.children.push_back(ast_expr);
+		}
+		ast_if.children.push_back(ast_true);
+		if (a_elseblock) {
+			ast_if.children.push_back(ast_false);
+		}
+
+		currentASTs.top()->children.push_back(ast_if);
+
+		return true;
+	}
+
 
 	bool Parser::parse_declaration() {
 		int oldPosition = currentPosition;
@@ -433,11 +737,14 @@ namespace cb {
 	}
 
 	bool Parser::parse_lvalue(AST *a_ast) {
-		// TODO only allow class access and list access
-		return parse_function_call(a_ast) || parse_expression(a_ast);
+		if (parse_expression(a_ast)) {
+			return a_ast->type == AST::Type::op_access;
+		}
+
+		return parse_identifier(a_ast);
 	}
 
-	bool Parser::parse_rvalue(AST *a_ast) {
+	bool Parser::parse_rvalue(AST *a_ast, bool a_allow_expression) {
 		switch (getTokenAt(0).type) {
 		case Token::Type::val_strry:
 			*a_ast = AST(AST::Type::val_strry, getTokenAt(0).value);
@@ -453,7 +760,7 @@ namespace cb {
 			return true;
 		default:;
 		}
-		return parse_function_call(a_ast) || parse_expression(a_ast);
+		return parse_function_call(a_ast) || (a_allow_expression && parse_expression(a_ast));
 	}
 
 	int Parser::parse(std::vector<Token> &a_tokens) {
@@ -468,7 +775,7 @@ namespace cb {
 
 		try {
 			while (currentPosition < currentTokens->size()) {
-				if (parse_empty_line() || parse_goto() || parse_brainfuck() || parse_class()) {
+				if (parse_empty_line() || parse_goto() || parse_brainfuck() || parse_class() || parse_function()) {
 					continue;
 				}
 				throw weHaveError("Unexpected token " + getTokenAt(0).value);

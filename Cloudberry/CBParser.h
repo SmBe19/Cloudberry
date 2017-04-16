@@ -23,7 +23,7 @@ namespace cb {
 			val_nummy, // nummy val [val]
 			val_fuzzy, // fuzzy val [val]
 			val_strry, // strry val [val]
-			function_call, // func() [-, func:, arguments:list<rvalue>]
+			function_call, // func() [-, func:lvalue, arguments:list<rvalue>]
 			cs_if, // if [-, expression:expression, true:sequence, false:sequence]
 			cs_for, // for [-, init:sequence, check:expression, update:sequence, body:sequence]
 			cs_forin, // forin [-, var:declare, iterable:expression, body:sequence]
@@ -87,6 +87,7 @@ namespace cb {
 	protected:
 		AST root;
 		std::map<Token::Type, int> operatorPrecedence;
+		std::map<Token::Type, AST::Type> tokenToAstType;
 		ParserException weHaveError(std::string);
 		int currentPosition;
 		std::vector<Token> *currentTokens;
@@ -107,15 +108,22 @@ namespace cb {
 		bool parse_statement();
 		bool parse_assign_statement();
 		bool parse_function_call(AST*);
+		bool parse_listaccess(AST*);
+		bool parse_list_or_function(AST*, Token::Type, Token::Type);
 		bool parse_expression(AST*);
+		bool parse_expression_statement();
+		bool parse_for_expression(AST*);
+		bool parse_forin_expression(AST*);
 		bool parse_for_statement();
+		bool parse_forin_statement();
 		bool parse_if_statement();
 		bool parse_while_statement();
 		bool parse_dowhile_statement();
+		bool parse_iflike_statement(Token::Type, AST::Type, bool, bool, bool (Parser::*)(AST*));
 		bool parse_declaration();
 		bool parse_identifier(AST*);
 		bool parse_lvalue(AST*);
-		bool parse_rvalue(AST*);
+		bool parse_rvalue(AST*, bool);
 	};
 }
 

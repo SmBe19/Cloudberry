@@ -13,7 +13,9 @@ namespace cb {
 
 	Lexer::Lexer() {
 		identifierToToken["if"] = Token::Type::kw_if;
+		identifierToToken["else"] = Token::Type::kw_else;
 		identifierToToken["for"] = Token::Type::kw_for;
+		identifierToToken["forin"] = Token::Type::kw_forin;
 		identifierToToken["in"] = Token::Type::kw_in;
 		identifierToToken["while"] = Token::Type::kw_while;
 		identifierToToken["dowhile"] = Token::Type::kw_dowhile;
