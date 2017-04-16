@@ -31,6 +31,7 @@ namespace cb {
 			cs_dowhile, // dowhile [-, expression:expression, body:sequence]
 			cs_goto, // goto [name]
 			op_access, // a.b [-, a:lvalue, b:identifier]
+			op_listaccess, // a[b] [-, a:lvalue, b:list<rvalue>]
 			op_plus, // a + b [-, a:expression, b:expression]
 			op_minus, // a - b [-, a:expression, b:expression]
 			op_not, // !a [-, a:expression]
@@ -67,11 +68,12 @@ namespace cb {
 			op_declare, // declare variable: a b [-, a:type, b:identifier]
 		};
 		AST();
-		AST(Type, std::string);
+		AST(Type, std::string, int);
 		~AST();
 		std::vector<AST> children;
 		Type type;
 		std::string value;
+		int line;
 	};
 
 	class ParserException {};
@@ -94,6 +96,9 @@ namespace cb {
 		std::stack<AST*> currentASTs;
 		std::vector<Token::Type> currentIndentation;
 		Token getTokenAt(int) const;
+		AST createAST(AST::Type);
+		AST createAST(AST::Type, std::string);
+		AST createAST(AST::Type, std::string, int);
 		bool checkTypes(std::vector<Token::Type>& a_types, int a_offset) const;
 		bool checkTypes(std::vector<Token::Type>&) const;
 		bool readNewline();
@@ -108,7 +113,6 @@ namespace cb {
 		bool parse_statement();
 		bool parse_assign_statement();
 		bool parse_function_call(AST*);
-		bool parse_listaccess(AST*);
 		bool parse_list_or_function(AST*, Token::Type, Token::Type);
 		bool parse_expression(AST*);
 		bool parse_expression_statement();

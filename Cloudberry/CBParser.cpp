@@ -3,9 +3,10 @@
 namespace cb {
 	AST::AST() {}
 
-	AST::AST(AST::Type a_type, std::string a_value) {
+	AST::AST(AST::Type a_type, std::string a_value, int a_line) {
 		type = a_type;
 		value = a_value;
+		line = a_line;
 	}
 
 	AST::~AST() {}
@@ -81,7 +82,6 @@ namespace cb {
 		tokenToAstType[Token::Type::op_assignbitor] = AST::Type::op_assignbitor;
 		tokenToAstType[Token::Type::op_assignand] = AST::Type::op_assignand;
 		tokenToAstType[Token::Type::op_assignor] = AST::Type::op_assignor;
-		tokenToAstType[Token::Type::op_access] = AST::Type::op_access;
 
 		errorpos = 0;
 		errorstr = "";
@@ -103,6 +103,18 @@ namespace cb {
 
 	Token Parser::getTokenAt(int a_offset) const {
 		return currentTokens->at(currentPosition + a_offset);
+	}
+
+	AST Parser::createAST(AST::Type a_type) {
+		return createAST(a_type, "");
+	}
+
+	AST Parser::createAST(AST::Type a_type, std::string a_value) {
+		return createAST(a_type, a_value, currentTokens->at(currentPosition).line);
+	}
+
+	AST Parser::createAST(AST::Type a_type, std::string a_value, int a_line) {
+		return AST(a_type, a_value, a_line);
 	}
 
 	template<typename T>
@@ -134,7 +146,7 @@ namespace cb {
 
 	bool Parser::readNewline() {
 		if (!(getTokenAt(0).type == Token::Type::newline)) {
-			throw weHaveError("Unexpected token " + getTokenAt(0).value + "; Expcted \n");
+			throw weHaveError("Unexpected token " + getTokenAt(0).value + "; Expected \\n");
 		}
 		currentPosition += 1;
 		return true;
@@ -167,7 +179,7 @@ namespace cb {
 			return false;
 		}
 		do {
-			AST na = AST(AST::Type::cs_goto, getTokenAt(1).value);
+			AST na = createAST(AST::Type::cs_goto, getTokenAt(1).value);
 			currentASTs.top()->children.push_back(na);
 			currentPosition += 2;
 		} while (checkTypes(reqMore));
@@ -199,19 +211,19 @@ namespace cb {
 		currentPosition += 3;
 
 		// build brainfuck AST
-		AST ast_func = AST(AST::Type::function, name);
-		AST ast_ret = AST(AST::Type::type, returnType);
-		AST ast_arglist = AST(AST::Type::list, "");
+		AST ast_func = createAST(AST::Type::function, name);
+		AST ast_ret = createAST(AST::Type::type, returnType);
+		AST ast_arglist = createAST(AST::Type::list);
 		for (std::string argument : arguments) {
-			AST ast_arg = AST(AST::Type::op_declare, "");
-			AST ast_argtype = AST(AST::Type::type, argument);
-			AST ast_argname = AST(AST::Type::identifier, "");
+			AST ast_arg = createAST(AST::Type::op_declare);
+			AST ast_argtype = createAST(AST::Type::type, argument);
+			AST ast_argname = createAST(AST::Type::identifier);
 			ast_arg.children.push_back(ast_argtype);
 			ast_arg.children.push_back(ast_argname);
 			ast_arglist.children.push_back(ast_arg);
 		}
-		AST ast_funcbody = AST(AST::Type::sequence, "");
-		AST ast_bf = AST(AST::Type::brainfuck, code);
+		AST ast_funcbody = createAST(AST::Type::sequence);
+		AST ast_bf = createAST(AST::Type::brainfuck, code);
 		ast_funcbody.children.push_back(ast_bf);
 		ast_func.children.push_back(ast_ret);
 		ast_func.children.push_back(ast_arglist);
@@ -239,29 +251,41 @@ namespace cb {
 		}
 
 		if (!checkTypes(reqEnd)) {
-			throw weHaveError("Unexpected token " + getTokenAt(0).value + "; Expected :\n");
+			throw weHaveError("Unexpected token " + getTokenAt(0).value + "; Expected :\\n");
 		}
 		currentPosition += 2;
 
-		AST ast_classy = AST(AST::Type::classy, name);
-		AST ast_inheritance = AST(AST::Type::identifier, inheritance);
-		AST ast_body = AST(AST::Type::sequence, "");
+		AST ast_classy = createAST(AST::Type::classy, name);
+		AST ast_inheritance = createAST(AST::Type::identifier, inheritance);
+		AST ast_body = createAST(AST::Type::sequence);
 		ast_classy.children.push_back(ast_inheritance);
-		ast_classy.children.push_back(ast_body);
 
+		if (!parse_suite(&ast_body, true)) {
+			throw weHaveError("Invalid class body");
+		}
+		ast_classy.children.push_back(ast_body);
 		currentASTs.top()->children.push_back(ast_classy);
-		return parse_suite(&currentASTs.top()->children.back().children.back(), false);
+		return true;
 	}
 
-	bool Parser::parse_suite(AST *a_ast, bool a_allow_statement) {
+	bool Parser::parse_suite(AST *a_ast, bool a_only_declaration) {
 		currentIndentation.push_back(Token::Type::indent);
 		currentASTs.push(a_ast);
 		bool wasEmpty = false;
-		while ((wasEmpty = parse_empty_line() || parse_indentation())) {
-			if (wasEmpty || parse_function() || parse_class() || (a_allow_statement && parse_statement())) {
+		while (((wasEmpty = parse_empty_line())) || parse_indentation()) {
+			if (wasEmpty || parse_function() || parse_class()) {
 				continue;
 			}
-			throw weHaveError("Unexpected token " + getTokenAt(0).value);
+			if (a_only_declaration) {
+				if (parse_declaration() || parse_assign_statement()) {
+					continue;
+				}
+			} else {
+				if (parse_statement()) {
+					continue;
+				}
+			}
+			throw weHaveError("Suite: Unexpected token " + getTokenAt(0).value);
 		}
 		currentASTs.pop();
 		currentIndentation.pop_back();
@@ -279,17 +303,17 @@ namespace cb {
 			return false;
 		}
 
-		std::string name = getTokenAt(1).value;
-		AST ast_func = AST(AST::Type::function, name);
-		AST ast_arguments = AST(AST::Type::list, "");
-		AST ast_body = AST(AST::Type::sequence, "");
+		std::string name = getTokenAt(0).value;
+		AST ast_func = createAST(AST::Type::function, name);
+		AST ast_arguments = createAST(AST::Type::list);
+		AST ast_body = createAST(AST::Type::sequence);
 		currentPosition += 2;
 
 		AST ast_argument_type;
 		while (parse_type(&ast_argument_type) && getTokenAt(0).type == Token::Type::identifier) {
 			std::string argname = getTokenAt(0).value;
-			AST ast_argument = AST(AST::Type::op_declare, "");
-			AST ast_argument_name = AST(AST::Type::identifier, getTokenAt(0).value);
+			AST ast_argument = createAST(AST::Type::op_declare);
+			AST ast_argument_name = createAST(AST::Type::identifier, getTokenAt(0).value);
 			ast_argument.children.push_back(ast_argument_type);
 			ast_argument.children.push_back(ast_argument_name);
 			ast_arguments.children.push_back(ast_argument);
@@ -302,7 +326,7 @@ namespace cb {
 		}
 
 		if (!checkTypes(reqEnd)) {
-			throw weHaveError("Unexpected token " + getTokenAt(0).value + "; Expected ):\n");
+			throw weHaveError("Unexpected token " + getTokenAt(0).value + "; Expected ):\\n");
 		}
 		currentPosition += 3;
 		ast_func.children.push_back(ast_return_type);
@@ -310,7 +334,7 @@ namespace cb {
 		ast_func.children.push_back(ast_body);
 
 		currentASTs.top()->children.push_back(ast_func);
-		return parse_suite(&currentASTs.top()->children.back().children.back(), true);
+		return parse_suite(&currentASTs.top()->children.back().children.back(), false);
 	}
 
 	bool Parser::parse_type(AST *a_ast) {
@@ -318,30 +342,31 @@ namespace cb {
 			return false;
 		}
 		if (getTokenAt(1).type == Token::Type::op_smaller) {
-			currentPosition += 1;
-			*a_ast = AST(AST::Type::type_generic, getTokenAt(0).value);
+			*a_ast = createAST(AST::Type::type_generic, getTokenAt(0).value);
+			currentPosition += 2;
 			AST ast_child;
 			while (parse_type(&ast_child)) {
 				a_ast->children.push_back(ast_child);
-				currentPosition += 2;
+				currentPosition += 1;
 				if (getTokenAt(-1).type == Token::Type::comma) {
 					continue;
 				}
-				if (getTokenAt(-1).type != Token::Type::op_smaller) {
+				if (getTokenAt(-1).type != Token::Type::op_greater) {
 					throw weHaveError("Unexpected token " + getTokenAt(1).value + "; Expected >");
 				}
 				break;
 			}
 		} else {
-			*a_ast = AST(AST::Type::type, getTokenAt(0).value);
+			*a_ast = createAST(AST::Type::type, getTokenAt(0).value);
 			currentPosition += 1;
 		}
 		return true;
 	}
 
 	bool Parser::parse_statement() {
-		return parse_declaration() || parse_assign_statement() || parse_for_statement()
-			|| parse_if_statement() || parse_while_statement() || parse_dowhile_statement();
+		return parse_for_statement() || parse_if_statement() || parse_while_statement()
+			|| parse_dowhile_statement() || parse_declaration() || parse_assign_statement()
+			|| parse_expression_statement();
 	}
 
 	bool Parser::parse_assign_statement() {
@@ -365,7 +390,7 @@ namespace cb {
 		case Token::Type::op_assignbitand:
 		case Token::Type::op_assignbitxor:
 		case Token::Type::op_assignbitor:
-			ast_op = AST(tokenToAstType[getTokenAt(0).type], "");
+			ast_op = createAST(tokenToAstType[getTokenAt(0).type]);
 			break;
 		default:
 			currentPosition = oldPosition;
@@ -375,7 +400,7 @@ namespace cb {
 
 		AST ast_rval;
 		if (!parse_expression(&ast_rval)) {
-			throw weHaveError("Expected expression");
+			throw weHaveError("Assign statement: Expected expression");
 		}
 
 		ast_op.children.push_back(ast_lval);
@@ -390,9 +415,6 @@ namespace cb {
 		return parse_list_or_function(a_ast, Token::Type::op_parenthese_open, Token::Type::op_parenthese_close);
 	}
 
-	bool Parser::parse_listaccess(AST *a_ast) {
-		return parse_list_or_function(a_ast, Token::Type::op_bracket_open, Token::Type::op_bracket_close);
-	}
 
 	bool Parser::parse_list_or_function(AST *a_ast, Token::Type a_open, Token::Type a_close) {
 		int oldPosition = currentPosition;
@@ -402,18 +424,19 @@ namespace cb {
 			return false;
 		}
 
-		*a_ast = AST(AST::Type::function_call, "");
+		*a_ast = createAST(AST::Type::function_call);
 		a_ast->children.push_back(ast_lvalue);
-		AST ast_arguments = AST(AST::Type::list, "");
+		AST ast_arguments = createAST(AST::Type::list);
 		AST ast_argument;
 		while (getTokenAt(0).type != a_close) {
+			currentPosition += 1;
 			if (!parse_rvalue(&ast_argument, true)) {
 				throw weHaveError("Expected argument");
 			}
 			ast_arguments.children.push_back(ast_argument);
 			if (getTokenAt(0).type != Token::Type::comma
-				&& getTokenAt(1).type != a_close) {
-				throw weHaveError("Expected , or )");
+				&& getTokenAt(0).type != a_close) {
+				throw weHaveError("Unexpected token " + getTokenAt(0).value + "; Expected , or )");
 			}
 		}
 		a_ast->children.push_back(ast_arguments);
@@ -427,7 +450,7 @@ namespace cb {
 		AST ast_expr;
 		if (parse_expression(&ast_expr)) {
 			currentASTs.top()->children.push_back(ast_expr);
-			return true;
+			return readNewline();
 		}
 		return false;
 	}
@@ -464,7 +487,7 @@ namespace cb {
 					if (values.size() < 2) {
 						throw weHaveError("Too few values in expression");
 					}
-					ast_rvalue = AST(tokenToAstType[ops.top().type], "");
+					ast_rvalue = createAST(tokenToAstType[ops.top().type]);
 					ops.pop();
 					AST ast2 = values.top();
 					values.pop();
@@ -474,7 +497,14 @@ namespace cb {
 					ast_rvalue.children.push_back(ast2);
 					values.push(ast_rvalue);
 				}
-				stillInExpression = true;
+				if (values.size() > 1) {
+					throw weHaveError("Too many values in expression");
+				}
+				if (values.empty()) {
+					throw weHaveError("Not enough values in expression");
+				}
+				*a_ast = values.top();
+				stillInExpression = false;
 				break;
 			case Token::Type::op_plus:
 			case Token::Type::op_minus:
@@ -496,13 +526,12 @@ namespace cb {
 			case Token::Type::op_bitor:
 			case Token::Type::op_and:
 			case Token::Type::op_or:
-			case Token::Type::op_access:
 				tok_now = getTokenAt(0);
 				while (!ops.empty() && operatorPrecedence[ops.top().type] <= operatorPrecedence[tok_now.type]) {
 					if (values.size() < 2) {
 						throw weHaveError("Too few values in expression");
 					}
-					ast_rvalue = AST(tokenToAstType[ops.top().type], "");
+					ast_rvalue = createAST(tokenToAstType[ops.top().type]);
 					ops.pop();
 					AST ast2 = values.top();
 					values.pop();
@@ -524,7 +553,7 @@ namespace cb {
 	}
 
 	bool Parser::parse_for_expression(AST *a_ast) {
-		*a_ast = AST(AST::Type::sequence, "");
+		*a_ast = createAST(AST::Type::sequence);
 		int oldPosition = currentPosition;
 		AST ast_rvalue1;
 		if (!parse_rvalue(&ast_rvalue1, true)
@@ -543,14 +572,14 @@ namespace cb {
 		}
 
 		std::string name = getTokenAt(2).value;
+		Token tok_now2 = getTokenAt(3);
 
-		currentPosition += 3;
-
-		Token tok_now2 = getTokenAt(0);
+		currentPosition += 4;
 
 		if (is_up && tok_now2.type != Token::Type::op_smaller && tok_now2.type != Token::Type::op_smallereq) {
 			throw weHaveError("For: wrong operator");
-		} else if (!is_up && tok_now2.type != Token::Type::op_greater && tok_now2.type != Token::Type::op_greatereq) {
+		}
+		if (!is_up && tok_now2.type != Token::Type::op_greater && tok_now2.type != Token::Type::op_greatereq) {
 			throw weHaveError("For: wrong operator");
 		}
 
@@ -559,30 +588,30 @@ namespace cb {
 			throw weHaveError("Expected Expression");
 		}
 
-		AST ast_init = AST(AST::Type::sequence, "");
-		AST ast_init_declare = AST(AST::Type::op_declare, "");
-		AST ast_init_declare_type = AST(AST::Type::type, "nummy");
-		AST ast_init_declare_name = AST(AST::Type::identifier, name);
+		AST ast_init = createAST(AST::Type::sequence);
+		AST ast_init_declare = createAST(AST::Type::op_declare);
+		AST ast_init_declare_type = createAST(AST::Type::type, "nummy");
+		AST ast_init_declare_name = createAST(AST::Type::identifier, name);
 		ast_init_declare.children.push_back(ast_init_declare_type);
 		ast_init_declare.children.push_back(ast_init_declare_name);
 		ast_init.children.push_back(ast_init);
-		AST ast_one = AST(AST::Type::val_nummy, "1");
+		AST ast_one = createAST(AST::Type::val_nummy, "1");
 		if (!is_eq) {
-			AST ast_nrvalue1 = AST(is_up ? AST::Type::op_minus : AST::Type::op_plus, "");
+			AST ast_nrvalue1 = createAST(is_up ? AST::Type::op_minus : AST::Type::op_plus);
 			ast_nrvalue1.children.push_back(ast_rvalue1);
 			ast_nrvalue1.children.push_back(ast_one);
 			ast_rvalue1 = ast_nrvalue1;
 		}
-		AST ast_init_assign = AST(AST::Type::op_assign, "");
+		AST ast_init_assign = createAST(AST::Type::op_assign);
 		ast_init_assign.children.push_back(ast_init_declare_name);
 		ast_init_assign.children.push_back(ast_rvalue1);
 		ast_init.children.push_back(ast_init_assign);
 
-		AST ast_check = AST(tokenToAstType[tok_now2.type], "");
+		AST ast_check = createAST(tokenToAstType[tok_now2.type]);
 		ast_check.children.push_back(ast_init_declare_name);
 		ast_check.children.push_back(ast_rvalue2);
-		AST ast_update = AST(AST::Type::sequence, "");
-		AST ast_update_change = AST(is_up ? AST::Type::op_plus : AST::Type::op_minus, "");
+		AST ast_update = createAST(AST::Type::sequence);
+		AST ast_update_change = createAST(is_up ? AST::Type::op_plus : AST::Type::op_minus);
 		ast_update_change.children.push_back(ast_init_declare_name);
 		ast_update_change.children.push_back(ast_one);
 		ast_update.children.push_back(ast_update_change);
@@ -595,7 +624,7 @@ namespace cb {
 	}
 
 	bool Parser::parse_forin_expression(AST *a_ast) {
-		*a_ast = AST(AST::Type::sequence, "");
+		*a_ast = createAST(AST::Type::sequence);
 		int oldPosition = currentPosition;
 		AST ast_type;
 		if (!parse_type(&ast_type) || getTokenAt(0).type != Token::Type::identifier) {
@@ -603,8 +632,8 @@ namespace cb {
 			return false;
 		}
 		std::string name = getTokenAt(0).value;
-		AST ast_declare = AST(AST::Type::op_declare, "");
-		AST ast_name = AST(AST::Type::identifier, name);
+		AST ast_declare = createAST(AST::Type::op_declare);
+		AST ast_name = createAST(AST::Type::identifier, name);
 		ast_declare.children.push_back(ast_type);
 		ast_declare.children.push_back(ast_name);
 
@@ -658,28 +687,28 @@ namespace cb {
 
 		AST ast_expr;
 		if (!(this->*a_parse_expression)(&ast_expr)) {
-			throw weHaveError("Expected for expression");
+			throw weHaveError("Iflike statement: Expected expression");
 		}
-		if (checkTypes(reqEnd)) {
-			throw weHaveError("Expected ):\n");
+		if (!checkTypes(reqEnd)) {
+			throw weHaveError("Unexpected token " + getTokenAt(0).value + "; Expected ):\\n");
 		}
 		currentPosition += 3;
 
 		AST ast_true;
-		parse_suite(&ast_true, true);
+		parse_suite(&ast_true, false);
 		AST ast_false;
 		if (a_elseblock) {
 			if (getTokenAt(0).type == Token::Type::kw_else) {
 				currentPosition += 1;
-				if (!parse_suite(&ast_false, true)) {
+				if (!parse_suite(&ast_false, false)) {
 					throw weHaveError("Expected else block");
 				}
 			} else {
-				ast_false = AST(AST::Type::sequence, "");
+				ast_false = createAST(AST::Type::sequence);
 			}
 		}
 
-		AST ast_if = AST(a_asttype, "");
+		AST ast_if = createAST(a_asttype);
 		if (a_copyexpressionchildren) {
 			for (AST &c : ast_expr.children) {
 				ast_if.children.push_back(c);
@@ -708,8 +737,8 @@ namespace cb {
 
 		std::string name = getTokenAt(0).value;
 		// we do not advance yet because there might be an assignment
-		AST ast_declare = AST(AST::Type::op_declare, "");
-		AST ast_name = AST(AST::Type::identifier, name);
+		AST ast_declare = createAST(AST::Type::op_declare);
+		AST ast_name = createAST(AST::Type::identifier, name);
 		ast_declare.children.push_back(ast_type);
 		ast_declare.children.push_back(ast_name);
 
@@ -717,7 +746,7 @@ namespace cb {
 
 		if (getTokenAt(1).type == Token::Type::op_equals) {
 			if (!parse_assign_statement()) {
-				throw weHaveError("Invalid assign statement");
+				throw weHaveError("Invalid assign statement in declaration");
 			}
 		} else {
 			currentPosition += 1;
@@ -731,42 +760,100 @@ namespace cb {
 		if (getTokenAt(0).type != Token::Type::identifier) {
 			return false;
 		}
-		*a_ast = AST(AST::Type::identifier, getTokenAt(0).value);
+		*a_ast = createAST(AST::Type::identifier, getTokenAt(0).value);
 		currentPosition += 1;
 		return true;
 	}
 
 	bool Parser::parse_lvalue(AST *a_ast) {
-		if (parse_expression(a_ast)) {
-			return a_ast->type == AST::Type::op_access;
-		}
+		int oldPosition = currentPosition;
+		std::stack<AST> values;
 
-		return parse_identifier(a_ast);
+		bool stillInLvalue = true;
+		while (stillInLvalue) {
+			AST ast, ast_list, ast_ident;
+			switch (getTokenAt(0).type) {
+			case Token::Type::op_access:
+				currentPosition += 1;
+				if (!parse_identifier(&ast_ident)) {
+					throw weHaveError("Unexpected token " + getTokenAt(0).value + "; Expected identifier");
+				}
+				ast = createAST(AST::Type::op_access);
+				ast.children.push_back(values.top());
+				values.pop();
+				ast.children.push_back(ast_ident);
+				values.push(ast);
+				break;
+			case Token::Type::op_bracket_open:
+				currentPosition += 1;
+				ast_list = createAST(AST::Type::list);
+				do {
+					if (!parse_rvalue(&ast, true)) {
+						throw weHaveError("Invalid expression in listaccess");
+					}
+					ast_list.children.push_back(ast);
+					currentPosition += 1;
+				} while (getTokenAt(-1).type == Token::Type::comma);
+				if (getTokenAt(-1).type != Token::Type::op_bracket_close) {
+					throw weHaveError("Unexpected token " + getTokenAt(0).value + "; Expected ]");
+				}
+				ast = createAST(AST::Type::op_listaccess);
+				if (values.empty()) {
+					throw weHaveError("Missing lvalue for listaccess");
+				}
+				ast.children.push_back(values.top());
+				values.pop();
+				ast.children.push_back(ast_list);
+				values.push(ast);
+				break;
+			case Token::Type::identifier:
+				if (!values.empty()) {
+					stillInLvalue = false;
+					break;
+				}
+				if (!parse_identifier(&ast)) {
+					throw weHaveError("lvalue: Invalid identifier");
+				}
+				values.push(ast);
+				break;
+			default:
+				stillInLvalue = false;
+				break;
+			}
+		}
+		if (values.size() > 1) {
+			throw weHaveError("Too many values in lvalue");
+		}
+		if (values.empty()) {
+			return false;
+		}
+		*a_ast = values.top();
+		return true;
 	}
 
 	bool Parser::parse_rvalue(AST *a_ast, bool a_allow_expression) {
 		switch (getTokenAt(0).type) {
 		case Token::Type::val_strry:
-			*a_ast = AST(AST::Type::val_strry, getTokenAt(0).value);
+			*a_ast = createAST(AST::Type::val_strry, getTokenAt(0).value);
 			currentPosition += 1;
 			return true;
 		case Token::Type::val_nummy:
-			*a_ast = AST(AST::Type::val_nummy, getTokenAt(0).value);
+			*a_ast = createAST(AST::Type::val_nummy, getTokenAt(0).value);
 			currentPosition += 1;
 			return true;
 		case Token::Type::val_fuzzy:
-			*a_ast = AST(AST::Type::val_fuzzy, getTokenAt(0).value);
+			*a_ast = createAST(AST::Type::val_fuzzy, getTokenAt(0).value);
 			currentPosition += 1;
 			return true;
 		default:;
 		}
-		return parse_function_call(a_ast) || (a_allow_expression && parse_expression(a_ast));
+		return parse_function_call(a_ast) || parse_lvalue(a_ast) || (a_allow_expression && parse_expression(a_ast));
 	}
 
 	int Parser::parse(std::vector<Token> &a_tokens) {
 		// add buffer at end
 		for (int i = 0; i < 7; ++i) {
-			a_tokens.push_back(Token(Token::Type::newline, "\\n", -1));
+			a_tokens.push_back(Token(Token::Type::eof, "EOF", -1));
 		}
 
 		currentPosition = 0;
@@ -777,6 +864,9 @@ namespace cb {
 			while (currentPosition < currentTokens->size()) {
 				if (parse_empty_line() || parse_goto() || parse_brainfuck() || parse_class() || parse_function()) {
 					continue;
+				}
+				if (getTokenAt(0).type == Token::Type::eof) {
+					break;
 				}
 				throw weHaveError("Unexpected token " + getTokenAt(0).value);
 			}

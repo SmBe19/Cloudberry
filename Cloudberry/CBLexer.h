@@ -16,6 +16,7 @@ namespace cb {
 			colon,
 			comma,
 			newline,
+			eof,
 			bf_delimiter,
 			bf_funcname,
 			bf_type,
