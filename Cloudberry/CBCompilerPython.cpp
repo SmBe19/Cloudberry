@@ -91,7 +91,9 @@ namespace cb {
 			break;
 		case AST::Type::function:
 			fs << "def " << a_ast.value;
-			if (!a_ast.children[1].children.empty()) {
+			if (a_ast.value == "cloudberry") {
+				fs << " (argc, argv)";
+			} else if (!a_ast.children[1].children.empty()) {
 				fs << " (";
 				bool first = true;
 				for (AST &ast : a_ast.children[1].children) {
@@ -349,7 +351,7 @@ namespace cb {
 			return 1;
 		}
 
-		fs << "cloudberry(len(sys.argv), sys.argv)\n";
+		fs << "cloudberry(argc=len(sys.argv), argv=sys.argv)\n";
 
 		return 0;
 	}
