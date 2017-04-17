@@ -68,6 +68,9 @@ namespace cb {
 		operatorToToken["||="] = Token::Type::op_assignor;
 		operatorToToken["."] = Token::Type::op_access;
 		operatorToToken["->"] = Token::Type::op_inherit;
+
+		indent = "";
+		foundIndent = false;
 	}
 
 	Lexer::~Lexer() {}
@@ -94,13 +97,21 @@ namespace cb {
 		bf_code,
 	};
 
+	int Lexer::weHaveError(int a_pos, std::string a_errorstr) {
+		errorpos = a_pos;
+		errorstr = a_errorstr;
+		return 1;
+	}
+
+
 	int Lexer::lex(std::string a_code, int line) {
 		// add buffer at end
 		a_code += "\n";
 		size_t codesize = a_code.size();
 		LexerState state = LexerState::init;
 		std::vector<Token> newTokens;
-		std::string value, tmp_value;
+		std::string value = "", tmp_value = "";
+		bool isLineStart = true;
 		for (size_t pos = 0; pos < codesize; pos++) {
 			char c = a_code[pos];
 			if (c == '\r') {
@@ -108,10 +119,49 @@ namespace cb {
 			}
 			switch (state) {
 			case LexerState::init:
+				if (isLineStart) {
+					if (c == ' ' || c == '\t') {
+						value += c;
+					}
+					if (foundIndent) {
+						if (c == ' ' && indent == "\t" || c == '\t' && indent[0] == ' ') {
+							return weHaveError(pos, "Mixed tabs and spaces");
+						}
+						if (value == indent) {
+							newTokens.push_back(Token(Token::Type::indent, "\t", line));
+							value = "";
+						}
+					} else {
+						if (c != ' ' && c != '\t' && !value.empty()) {
+							indent = value;
+							value = "";
+							foundIndent = true;
+							newTokens.push_back(Token(Token::Type::indent, "\t", line));
+							for (int i = 0; i < indent.size(); i++) {
+								if (indent[0] != indent[i]) {
+									return weHaveError(pos, "Mixed tabs and spaces");
+								}
+							}
+						}
+					}
+					if (c != ' ' && c != '\t') {
+						isLineStart = false;
+						if (!value.empty()) {
+							return weHaveError(pos, "Unused alignment");
+						}
+					} else {
+						continue;
+					}
+				}
 				if (c == ' ') {
 				} else if (c == '\t') {
+					if (!isLineStart) {
+						return weHaveError(pos, "Tabs not at line start");
+					}
 					newTokens.push_back(Token(Token::Type::indent, "\t", line));
 				} else if (c == '\n') {
+					isLineStart = true;
+					value = "";
 				} else if (c == ':') {
 					newTokens.push_back(Token(Token::Type::colon, ":", line));
 				} else if (c == ',') {
@@ -145,9 +195,7 @@ namespace cb {
 					value = std::string({ c });
 					state = LexerState::op;
 				} else {
-					errorpos = pos;
-					errorstr = "invalid character";
-					return 1;
+					return weHaveError(pos, "invalid character");
 				}
 				break;
 			case LexerState::maybecomment:
@@ -187,9 +235,7 @@ namespace cb {
 						tokentype = operatorToToken[value];
 					}
 					if (tokentype == Token::Type::identifier) {
-						errorpos = pos;
-						errorstr = "unknown operator " + value;
-						return 1;
+						return weHaveError(pos, "unknown operator " + value);
 					}
 					newTokens.push_back(Token(tokentype, value, line));
 					state = LexerState::init;
@@ -216,9 +262,7 @@ namespace cb {
 					newTokens.push_back(Token(Token::Type::val_strry, value, line));
 					state = LexerState::init;
 				} else if (c == '\n') {
-					errorpos = pos;
-					errorstr = "strry value not terminated";
-					return 1;
+					return weHaveError(pos, "strry value not terminated");
 				} else {
 					value += c;
 				}
@@ -227,13 +271,13 @@ namespace cb {
 				state = LexerState::strry;
 				if (c == '\\') {
 					value += "\\";
-				} else if (c == '"'){
+				} else if (c == '"') {
 					value += "\"";
 				} else if (c == 'n') {
 					value += "\n";
 				} else if (c == 'r') {
 					value += "\r";
-				} else if (c == 't'){
+				} else if (c == 't') {
 					value += "\t";
 				} else if (c == 'x') {
 					state = LexerState::strry_escape_num;
@@ -247,9 +291,7 @@ namespace cb {
 				if (('0' <= c && c <= '9') || ('a' <= c && c <= 'f')) {
 					tmp_value += c;
 				} else {
-					errorpos = pos;
-					errorstr = "invalid character in \\xhh escape sequence";
-					return 1;
+					return weHaveError(pos, "invalid character in \\xhh escape sequence");
 				}
 				if (tmp_value.size() == 2) {
 					int cval = 0;
@@ -261,9 +303,7 @@ namespace cb {
 						} else if ('a' <= atmp && atmp <= 'f') {
 							cval += atmp - 'a' + 10;
 						} else {
-							errorpos = pos;
-							errorstr = "invalid character in \\xhh escape sequence";
-							return 1;
+							return weHaveError(pos, "invalid character in \\xhh escape sequence");
 						}
 					}
 					value += (char)cval;
@@ -276,7 +316,7 @@ namespace cb {
 				} else if (c == '.') {
 					value += c;
 					state = LexerState::fuzzy;
-				} else if (c == 'x' && !value.compare("0")){
+				} else if (c == 'x' && !value.compare("0")) {
 					value += c;
 				} else {
 					newTokens.push_back(Token(Token::Type::val_nummy, value, line));
@@ -302,9 +342,7 @@ namespace cb {
 					newTokens.push_back(Token(Token::Type::bf_delimiter, "$", line));
 					state = LexerState::bf_type;
 				} else {
-					errorpos = pos;
-					errorstr = "invalid character in brainfuck function name";
-					return 1;
+					return weHaveError(pos, "invalid character in brainfuck function name");
 				}
 				break;
 			case LexerState::bf_type:
@@ -320,9 +358,7 @@ namespace cb {
 					value = "";
 					newTokens.push_back(Token(Token::Type::colon, ":", line));
 				} else {
-					errorpos = pos;
-					errorstr = "invalid character in brainfuck function name";
-					return 1;
+					return weHaveError(pos, "invalid character in brainfuck function name");
 				}
 				break;
 				break;
@@ -337,15 +373,11 @@ namespace cb {
 				}
 				break;
 			default:
-				errorpos = pos;
-				errorstr = "invalid state - this should not happen";
-				return 1;
+				return weHaveError(pos, "invalid state - this should not happen");
 			}
 			if (c == '\n' || pos == codesize - 1) {
 				if (state != LexerState::init) {
-					errorpos = pos;
-					errorstr = "invalid end state";
-					return 1;
+					return weHaveError(pos, "invalid end state");
 				}
 				bool anythingelse = false;
 				for (Token token : newTokens) {

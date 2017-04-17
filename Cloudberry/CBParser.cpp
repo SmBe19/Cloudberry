@@ -332,12 +332,14 @@ namespace cb {
 			throw weHaveError("Unexpected token " + getTokenAt(0).value + "; Expected ):\\n");
 		}
 		currentPosition += 3;
+
+		if (!parse_suite(&ast_body, false)) {
+			throw weHaveError("Expected function body");
+		}
 		ast_func.children.push_back(ast_return_type);
 		ast_func.children.push_back(ast_arguments);
 		ast_func.children.push_back(ast_body);
-
 		currentASTs.top()->children.push_back(ast_func);
-		return parse_suite(&currentASTs.top()->children.back().children.back(), false);
 	}
 
 	bool Parser::parse_type(AST *a_ast) {
@@ -889,7 +891,7 @@ namespace cb {
 				if (getTokenAt(0).type == Token::Type::eof) {
 					break;
 				}
-				throw weHaveError("Unexpected token " + getTokenAt(0).value);
+				throw weHaveError("Main: Unexpected token " + getTokenAt(0).value);
 			}
 		} catch (ParserException e) {
 			return 1;

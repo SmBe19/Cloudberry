@@ -103,6 +103,9 @@ namespace cb {
 		std::map<std::string, Token::Type> identifierToToken;
 		std::map<std::string, Token::Type> operatorToToken;
 		std::string operatorChars = "+-!~*/%<>=&|^.";
+		std::string indent;
+		bool foundIndent;
+		int weHaveError(int, std::string);
 	};
 
 }
