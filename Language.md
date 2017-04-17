@@ -42,34 +42,36 @@ A function is called using `function_name(expression, ...)`
 The following control structures are allowed:
 
 ```
-if (expression):
+hmm (expression):
 	CODE_BLOCK
 ```
 
 ```
-if (expression):
+hmm (expression):
 	CODE_BLOCK
-else:
-	CODE_BLOCK
-```
-
-```
-for (type i in list):
+elsa (expression):
+  CODE_BLOCK
+watevs:
 	CODE_BLOCK
 ```
 
 ```
-for (0 <= i < n):
+gogo (type i in list):
 	CODE_BLOCK
 ```
 
 ```
-while (expression):
+go (0 <= i < n):
 	CODE_BLOCK
 ```
 
 ```
-dowhile (expression):
+keepitup (expression):
+	CODE_BLOCK
+```
+
+```
+dokeepitup (expression):
 	CODE_BLOCK
 ```
 

@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <cstdlib>
+#include <cstdio>
 
 #include "CloudberryCompileOptions.h"
 #include "CBLexer.h"
@@ -69,7 +71,12 @@ void compileAST(cb::AST &a_ast, compilerbackend backend, std::string &a_file) {
 }
 
 void runAST(cb::AST &a_ast) {
-
+	std::string file = CB_RUN_FILE_NAME;
+	compileAST(a_ast, compilerbackend::python, file);
+	if (error == errortype::none) {
+		std::string cmd = CB_RUN_PYTHON_NAME " " CB_RUN_FILE_NAME;
+		std::cerr << "Run with cmd " << cmd << std::endl;
+	}
 }
 
 int main(int argc, char* argv[]) {

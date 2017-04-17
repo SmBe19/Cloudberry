@@ -7,4 +7,7 @@
 #define CB_DEFAULT_OUT_C "a.c"
 #define CB_DEFAULT_OUT_ASM "a.s"
 
+#define CB_RUN_FILE_NAME "cloudberry_runnable.py"
+#define CB_RUN_PYTHON_NAME "python"
+
 #endif // !CLOUDBERRYCOMPILEOPTIONS_H

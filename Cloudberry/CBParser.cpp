@@ -684,6 +684,7 @@ namespace cb {
 	bool Parser::parse_iflike_statement(Token::Type a_kwtype, AST::Type a_asttype, bool a_elseblock, bool a_copyexpressionchildren, bool(Parser::*a_parse_expression)(AST*)) {
 		std::vector<Token::Type> reqStart = { a_kwtype, Token::Type::op_parenthese_open };
 		std::vector<Token::Type> reqEnd = { Token::Type::op_parenthese_close, Token::Type::colon, Token::Type::newline };
+		std::vector<Token::Type> reqElif = { Token::Type::kw_elif, Token::Type::op_parenthese_open };
 		std::vector<Token::Type> reqElse = { Token::Type::kw_else, Token::Type::colon, Token::Type::newline };
 		if (!checkTypes(reqStart)) {
 			return false;
@@ -701,17 +702,27 @@ namespace cb {
 
 		AST ast_true;
 		parse_suite(&ast_true, false);
-		AST ast_false;
+		AST ast_false = createAST(AST::Type::sequence);
 		if (a_elseblock) {
 			int oldPosition = currentPosition;
-			if (parse_indentation() && checkTypes(reqElse)) {
-				currentPosition += 3;
-				if (!parse_suite(&ast_false, false)) {
-					throw weHaveError("Expected else block");
+			if (parse_indentation()) {
+				if (checkTypes(reqElif)) {
+					currentASTs.push(&ast_false);
+					if (!parse_iflike_statement(Token::Type::kw_elif, AST::Type::cs_if, true, false, a_parse_expression)) {
+						throw weHaveError("Expected elif block");
+					}
+					if (currentASTs.top() != &ast_false) {
+						throw weHaveError("We lost our AST");
+					}
+					currentASTs.pop();
+				} else if (checkTypes(reqElse)) {
+					currentPosition += 3;
+					if (!parse_suite(&ast_false, false)) {
+						throw weHaveError("Expected else block");
+					}
+				} else {
+					currentPosition = oldPosition;
 				}
-			} else {
-				currentPosition = oldPosition;
-				ast_false = createAST(AST::Type::sequence);
 			}
 		}
 

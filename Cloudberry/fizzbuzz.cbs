@@ -1,14 +1,13 @@
 nummy cloudberry(nummy argc, lissy<strry> argv):
 	nummy end = 100
-	if(argc == 2):
+	hmm(argc == 2):
 		end = int(argv[1])
-	for(1 )<= i <= end):
-		if(i%15==0):
+	go(1 )<= i <= end):
+		hmm(i%15==0):
 			print("FizzBuzz")
-		else:
-			if(i%3==0):
-				print("Fizz")
-			if(i%5==0):
-				print("Buzz")
-		if(i%3!=0&&i%5!=0):
+		elsa(i%3==0):
+			print("Fizz")
+		elsa(i%5==0):
+			print("Buzz")
+		watevs:
 			print(i)

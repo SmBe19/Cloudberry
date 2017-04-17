@@ -34,6 +34,7 @@ namespace cb {
 			type_diccy,
 			kw_if,
 			kw_else,
+			kw_elif,
 			kw_for,
 			kw_forin,
 			kw_in,

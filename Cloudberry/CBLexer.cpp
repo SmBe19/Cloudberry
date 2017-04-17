@@ -12,13 +12,14 @@ namespace cb {
 	Token::~Token() {}
 
 	Lexer::Lexer() {
-		identifierToToken["if"] = Token::Type::kw_if;
-		identifierToToken["else"] = Token::Type::kw_else;
-		identifierToToken["for"] = Token::Type::kw_for;
-		identifierToToken["forin"] = Token::Type::kw_forin;
+		identifierToToken["hmm"] = Token::Type::kw_if;
+		identifierToToken["elsa"] = Token::Type::kw_elif;
+		identifierToToken["watevs"] = Token::Type::kw_else;
+		identifierToToken["go"] = Token::Type::kw_for;
+		identifierToToken["gogo"] = Token::Type::kw_forin;
 		identifierToToken["in"] = Token::Type::kw_in;
-		identifierToToken["while"] = Token::Type::kw_while;
-		identifierToToken["dowhile"] = Token::Type::kw_dowhile;
+		identifierToToken["keepitup"] = Token::Type::kw_while;
+		identifierToToken["dokeepitup"] = Token::Type::kw_dowhile;
 		identifierToToken["classy"] = Token::Type::kw_classy;
 		identifierToToken["goto"] = Token::Type::kw_goto;
 		/*
