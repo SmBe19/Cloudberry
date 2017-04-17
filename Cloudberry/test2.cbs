@@ -1,0 +1,5 @@
+nummy cloudberry():
+	insp = sys.stdin.readline().split()
+	n = insp[0]
+	m = insp[1]
+	print(n, m)

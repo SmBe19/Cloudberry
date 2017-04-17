@@ -340,6 +340,7 @@ namespace cb {
 		ast_func.children.push_back(ast_arguments);
 		ast_func.children.push_back(ast_body);
 		currentASTs.top()->children.push_back(ast_func);
+		return true;
 	}
 
 	bool Parser::parse_type(AST *a_ast) {
@@ -429,12 +430,13 @@ namespace cb {
 			return false;
 		}
 
+		currentPosition += 1;
+
 		*a_ast = createAST(AST::Type::function_call);
 		a_ast->children.push_back(ast_lvalue);
 		AST ast_arguments = createAST(AST::Type::list);
 		AST ast_argument;
 		while (getTokenAt(0).type != a_close) {
-			currentPosition += 1;
 			if (!parse_rvalue(&ast_argument, true)) {
 				throw weHaveError("Expected argument");
 			}
@@ -442,6 +444,9 @@ namespace cb {
 			if (getTokenAt(0).type != Token::Type::comma
 				&& getTokenAt(0).type != a_close) {
 				throw weHaveError("Unexpected token " + getTokenAt(0).value + "; Expected , or )");
+			}
+			if (getTokenAt(0).type == Token::Type::comma) {
+				currentPosition += 1;
 			}
 		}
 		a_ast->children.push_back(ast_arguments);
@@ -797,6 +802,9 @@ namespace cb {
 				currentPosition += 1;
 				if (!parse_identifier(&ast_ident)) {
 					throw weHaveError("Unexpected token " + getTokenAt(0).value + "; Expected identifier");
+				}
+				if (values.empty()) {
+					throw weHaveError("Missing lvalue for classaccess");
 				}
 				ast = createAST(AST::Type::op_access);
 				ast.children.push_back(values.top());
