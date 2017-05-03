@@ -6,6 +6,14 @@
 #include <cstdlib>
 #include <cstdio>
 
+#ifdef __linux__
+#include <unistd.h>
+#include <sys/wait.h>
+#elif _WIN32
+#else
+#error Platform not supported
+#endif
+
 #include "CloudberryCompileOptions.h"
 #include "CBLexer.h"
 #include "CBParser.h"
@@ -43,6 +51,7 @@ std::vector<cb::Token> &lexFile(std::string a_file) {
 		}
 		linenum++;
 	}
+	fs.close();
 	return lexer.getTokens();
 }
 
@@ -74,8 +83,29 @@ void runAST(cb::AST &a_ast) {
 	std::string file = CB_RUN_FILE_NAME;
 	compileAST(a_ast, compilerbackend::python, file);
 	if (error == errortype::none) {
+		#ifdef __linux__
+		pid_t pid;
+		if(pid = fork()){
+			// parent
+			int status;
+			do{
+				waitpid(pid, &status, 0);
+			} while(!WIFEXITED(status));
+			if(remove(CB_RUN_FILE_NAME)){
+				perror("Could not delete run file");
+			}
+		} else {
+			// child
+			if(execlp(CB_RUN_PYTHON_NAME, CB_RUN_PYTHON_NAME, CB_RUN_FILE_NAME, (char*) NULL) == -1){
+				perror("Could not start python");
+			}
+		}
+		#elif _WIN32
 		std::string cmd = CB_RUN_PYTHON_NAME " " CB_RUN_FILE_NAME;
 		std::cerr << "Run with cmd " << cmd << std::endl;
+		#else
+		#error Platform not supported
+		#endif
 	}
 }
 

@@ -352,6 +352,7 @@ namespace cb {
 		}
 
 		fs << "cloudberry(argc=len(sys.argv), argv=sys.argv)\n";
+		fs.close();
 
 		return 0;
 	}
